@@ -13,7 +13,7 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
   },
   auth: {
-    tokenExpiration: 7200,
+    tokenExpiration: 604800, // 7 days
     verify: false,
     forgotPassword: {
       generateEmailHTML: ({ req, token, user }: any) => {
