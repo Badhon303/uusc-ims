@@ -8,6 +8,7 @@ import sharp from 'sharp'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { allowedOrigins } from './utils/cors/corsHandler'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -58,6 +59,19 @@ export default buildConfig({
     },
   }),
   sharp,
+  email: nodemailerAdapter({
+    defaultFromAddress: process.env.SMTP_USER || 'info@uusc.com',
+    defaultFromName: process.env.FROM_NAME || 'UUSC',
+    // Nodemailer transportOptions
+    transportOptions: {
+      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+      port: process.env.SMTP_PORT || 587,
+      auth: {
+        user: process.env.SMTP_USER || 'kathlyn.beier77@ethereal.email',
+        pass: process.env.SMTP_PASS || 'ask15M92beKzaGGpzj',
+      },
+    },
+  }),
   plugins: [],
   i18n: {
     translations: {

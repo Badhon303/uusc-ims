@@ -1,5 +1,7 @@
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
+import fs from 'fs'
+import path from 'path'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -10,7 +12,22 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: 'email',
   },
-  auth: true,
+  auth: {
+    tokenExpiration: 7200,
+    verify: false,
+    forgotPassword: {
+      generateEmailHTML: ({ req, token, user }: any) => {
+        const resetPasswordURL = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${token}`
+
+        let html = fs.readFileSync(
+          path.join(process.cwd(), 'src/email/forgot-password.html'),
+          'utf-8',
+        )
+        html = html.replace('{{RESET_URL}}', resetPasswordURL)
+        return html
+      },
+    },
+  },
   access: {
     read: ({ req: { user } }) => {
       if (!user) return false
@@ -107,6 +124,53 @@ export const Users: CollectionConfig = {
           value: 'guest',
         },
       ],
+    },
+  ],
+  endpoints: [
+    {
+      path: '/change-password',
+      method: 'post',
+      handler: async (req) => {
+        const { user, payload } = req
+
+        if (!user) {
+          return Response.json({ message: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Fix for ts(18048) and ts(2722)
+        if (!req.json) {
+          return Response.json({ message: 'Unsupported request format' }, { status: 400 })
+        }
+
+        try {
+          const body = await req.json()
+          const { currentPassword, newPassword } = body
+
+          if (!currentPassword || !newPassword) {
+            return Response.json({ message: 'Missing fields' }, { status: 400 })
+          }
+
+          try {
+            await payload.login({
+              collection: 'users',
+              data: { email: user.email, password: currentPassword },
+              req,
+            })
+          } catch (err) {
+            return Response.json({ message: 'Current password incorrect' }, { status: 400 })
+          }
+
+          await payload.update({
+            collection: 'users',
+            id: user.id,
+            data: { password: newPassword },
+          })
+
+          return Response.json({ message: 'Password changed successfully' }, { status: 200 })
+        } catch (err) {
+          return Response.json({ message: 'Error parsing JSON' }, { status: 400 })
+        }
+      },
     },
   ],
 }

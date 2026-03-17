@@ -1,11 +1,6 @@
 // Helper to attach CORS headers for our custom endpoints
 // This echoes back the origin if it's in our allow list and enables cookies
-export const allowedOrigins = [
-  'http://localhost:3000',
-  'https://dev.nakhlah.net',
-  'https://nakhlah-web-2-0.vercel.app',
-  'https://nakhlah-api.nakhlah.net',
-]
+export const allowedOrigins = ['http://localhost:3000']
 
 export const buildCorsHeaders = (request?: Request) => {
   const defaultHeaders: Record<string, string> = {
