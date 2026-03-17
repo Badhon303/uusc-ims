@@ -1,0 +1,393 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam componentStyle rectangle
+skinparam defaultFontSize 11
+
+' =====================================================
+' USER & PROFILE MANAGEMENT
+' =====================================================
+
+entity Users {
+  *id: INT
+  --
+  *email: email
+  *contactNumber: regex
+  *role: enum[Admin, Staff, Coach, Members, Guest]
+  *name: text
+  address: text
+}
+
+entity Media {
+  *id: INT
+  --
+  alt: text
+}
+
+entity Members {
+  *id: INT
+  --
+  *userId: INT <<FK>>
+  photoId: INT <<FK>>
+  *packageId: INT <<FK>>
+  joinDate: date
+  *membershipStatus: enum[active, pending, inactive]
+  totalDue: number
+  achievements: array[photoId, description]
+}
+
+entity Students {
+  *id: INT <<PK>>
+  --
+  *userId: INT <<FK>>
+  *packageId: INT <<FK>>
+  photoId: INT <<FK>>
+  parentName: text
+  parentContactNumber: regex
+  joinDate: date
+  skillLevel: enum
+  ranking: number
+  lessons_missed: array[]
+  totalDue: number
+  *membershipStatus: enum[active, pending, inactive]
+  remarks: array[]
+  achievements: array[photoId, description]
+}
+
+entity Guests {
+  *id: INT <<PK>>
+  --
+  *userId: INT <<FK>>
+  photoId: INT <<FK>>
+}
+
+entity Staffs {
+  *id: INT <<PK>>
+  --
+  *userId: INT <<FK>>
+  photoId: INT <<FK>>
+  *role: enum[Manager, Maid, Staff]
+  *joinDate: date
+  *salary: decimal
+}
+
+entity Coaches {
+  *id: INT <<PK>>
+  --
+  *userId: INT <<FK>>
+  specialization: richText
+  certification: array[protoId, description]
+  join_date: date
+  *salary: number
+}
+
+' =====================================================
+' ATTENDANCE
+' =====================================================
+
+entity MemberAttendance {
+  *id: INT <<PK>>
+  --
+  *memberId: INT <<FK>>
+  *presentDate: date
+}
+
+entity CoachAttendance {
+  *id: INT <<PK>>
+  --
+  *coachProfileId: INT <<FK>>
+  *presentDate: date
+}
+
+entity StudentAttendance {
+  *id: INT <<PK>>
+  --
+  *studentId: INT <<FK>>
+  *presentDate: date
+}
+
+entity StaffAttendance {
+  *id: INT <<PK>>
+  --
+  *staffId: INT <<FK>>
+  *presentDate: date
+}
+
+' =====================================================
+' PACKAGES & PAYMENTS
+' =====================================================
+
+entity Packages {
+  *id: INT <<PK>>
+  --
+  *packageName: text
+  *pricePerMonth: number
+  *registrationFee: number
+  description: richText
+}
+
+entity MemberSubscriptionPayments {
+  *id: INT <<PK>>
+  --
+  *memberId: INT <<FK>>
+  *amount: number
+  *paymentDate: date
+  *year: year
+  *months: date
+  transactionRef: text
+  *status: enum[Due, Paid]
+  due: number
+}
+
+entity StudentsSubscriptionPayments {
+  *id: INT <<PK>>
+  --
+  *studentId: INT <<FK>>
+  *amount: number
+  *paymentDate: date
+  *year: year
+  *months: date
+  transactionRef: text
+  *status: enum[Due, Paid]
+  due: number
+}
+
+entity MemberRegistrationFees {
+  *id: INT <<PK>>
+  --
+  *memberId: INT <<FK>>
+  *amount: number
+  *paymentDate: date
+  transactionRef: text
+}
+
+entity StudentRegistrationFees {
+  *id: INT <<PK>>
+  --
+  *studentId: INT <<FK>>
+  *amount: number
+  *paymentDate: date
+  transactionRef: text
+}
+
+' =====================================================
+' ACADEMY TRAINING
+' =====================================================
+
+entity TrainingGroup {
+  *id: INT <<PK>>
+  --
+  *groupName: text
+  *studentId: INT <<FK>>
+  *coachId: INT <<FK>>
+  *skillLevel: enum[beginner, intermediate, pro]
+}
+
+entity TrainingSchedule {
+  *id: INT <<PK>>
+  --
+  *trainingGroupId: INT <<FK>>
+  *coachId: INT <<FK>>
+  *courtId: INT <<FK>>
+  *dayOfWeek: enum
+  *startTime: datetime
+  *endTime: datetime
+}
+
+entity StudentProgress {
+  *id: INT <<PK>>
+  --
+  *studentId: INT <<FK>>
+  *coachId: INT <<FK>>
+  *evaluationDate: date
+  *evaluation: array[skillCategory, score]
+  notes: string
+}
+
+' =====================================================
+' COURT MANAGEMENT
+' =====================================================
+
+entity Courts {
+  *Id: INT <<PK>>
+  --
+  *courtName: string
+  description: string
+}
+
+entity CourtPricing {
+  *Id: INT <<PK>>
+  --
+  *courtId: INT <<FK>>
+  *pricingType: enum[peak, offPeak]
+  *pricePerHour: number
+}
+
+entity CourtBookings {
+  *Id: INT <<PK>>
+  --
+  *courtId: INT <<FK>>
+  *userId: INT <<FK>>
+  *courtPricingId: INT <<FK>>
+  *bookingDate: date
+  *startTime: datetime
+  *endTime: datetime
+  durationHours: number
+  totalAmount: number
+  status: enum[Due, Paid]
+}
+
+' =====================================================
+' TOURNAMENT MANAGEMENT
+' =====================================================
+
+entity Tournaments {
+  *id: INT <<PK>>
+  --
+  *tournamentName: text
+  *tournamentType: enum[Academy, Members, Academy&Members, OpenForAll]
+  start_date: date
+  registrationEndDate: datetime
+  status: enum[open, closed]
+}
+
+entity TournamentRegistrations {
+  *id: INT <<PK>>
+  --
+  *tournamentId: INT <<FK>>
+  *userId: INT <<FK>>
+  registrationDate: datetime
+  amount: number
+  paymentDate: date
+  transactionRef: text
+  status: enum[Due, paid]
+}
+
+entity TournamentTeams {
+  *id: INT <<PK>>
+  --
+  *teamName: text
+  *tournamentId: INT <<FK>>
+  *playerOne: INT <<FK>>
+  playerTwo: INT <<FK>>
+}
+
+entity TournamentMatches {
+  *id: INT <<PK>>
+  --
+  *tournamentId: INT <<FK>>
+  *teamOneId: INT <<FK>>
+  *teamTwoId: INT <<FK>>
+  courtId: INT <<FK>>
+  winnerId: INT <<FK>>
+  scheduled_time: datetime
+  teamOneScore: number
+  scoreTwoScore: number
+}
+
+entity TournamentResults {
+  *id: INT <<PK>>
+  --
+  *tournamentId: INT <<FK>>
+  *teamId: INT <<FK>>
+  *position: number
+  prize_amount: decimal
+}
+
+' =====================================================
+' EXPENDITURE
+' =====================================================
+
+entity Expenditure {
+  *id: INT <<PK>>
+  --
+  *expenditure_type: enum[Maintenance UtilityBill, EquipmentPurchase, TournamentExpenses, IndoorFacility, Miscellaneous]
+  *amount: decimal
+  expenditureDate: date
+  description: textarea
+}
+
+entity SalaryRecord {
+  *id: INT <<PK>>
+  --
+  *staffId: INT <<FK>>
+  *month: date
+  *salary: number
+  bonus: number
+  *status: enum[Due, Paid]
+}
+
+' =====================================================
+' Income
+' =====================================================
+
+entity othersIncome {
+  *id: INT <<PK>>
+  --
+  *amount: number
+  incomeDate: date
+  description: textarea
+}
+
+entity Sponsorship {
+  *id: INT <<PK>>
+  --
+  photoId: INT <<FK>>
+  *sponsorName: text
+  *contactNumber: regex
+  amount: number
+}
+
+' =====================================================
+' RELATIONSHIPS
+' =====================================================
+
+Users ||--o| Members
+Users ||--o| Students
+Users ||--o| Guests
+Users ||--o| Staffs
+Users ||--o| Coaches
+
+Members ||--o| MemberAttendance
+Members |o--|| Packages
+Coaches ||--o| CoachAttendance
+Students ||--o| StudentAttendance
+Students |o--|| Packages
+Staffs ||--o| StaffAttendance
+
+Members ||--o{ MemberSubscriptionPayments
+Students ||--{ StudentsSubscriptionPayments
+
+Members ||--o| MemberRegistrationFees
+Students ||--o| StudentRegistrationFees
+
+TrainingGroup }o--|| Students
+TrainingGroup |o--|| Coaches
+
+TrainingSchedule |o--|| TrainingGroup
+TrainingSchedule |o--|| Coaches
+TrainingSchedule |o--|| Courts
+
+StudentProgress |o--|| Students 
+Coaches ||--o| StudentProgress
+
+CourtPricing |o--|| Courts
+CourtBookings |o--|| Courts
+CourtBookings |o--|| Users
+CourtBookings |o--|| CourtPricing
+
+TournamentRegistrations |o--|| Users
+Tournaments ||--o| TournamentRegistrations
+Tournaments ||--o| TournamentTeams
+Users ||--o{ TournamentTeams
+
+Tournaments ||--o| TournamentMatches
+TournamentTeams ||--o{ TournamentMatches
+TournamentMatches |o--|| Courts 
+
+Tournaments ||--o| TournamentResults 
+TournamentTeams ||--o| TournamentResults 
+
+Staffs ||--o{ SalaryRecord 
+
+@enduml

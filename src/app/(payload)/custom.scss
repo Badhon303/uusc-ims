@@ -1,0 +1,18 @@
+/* Custom overrides */
+@layer payload-overrides {
+  /* === Sidebar Navigation Hover Effects === */
+  .nav__link {
+    text-decoration: none !important;
+    transition: all 0.2s ease-in-out; /* Smooth hover transition */
+
+    &:hover {
+      text-decoration: none !important;
+      color: #069540;
+    }
+
+    /* Optional: if the label needs specific targeting */
+    .nav__link-label {
+      transition: all 0.2s ease-in-out;
+    }
+  }
+}
