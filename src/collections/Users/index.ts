@@ -95,12 +95,12 @@ export const Users: CollectionConfig = {
           value: 'coach',
         },
         {
-          label: 'Members',
-          value: 'members',
+          label: 'Member',
+          value: 'member',
         },
         {
-          label: 'Students',
-          value: 'students',
+          label: 'Student',
+          value: 'student',
         },
         {
           label: 'Guest',
