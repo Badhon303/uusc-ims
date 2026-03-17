@@ -126,7 +126,7 @@ export interface User {
   name: string;
   contactNumber?: string | null;
   address?: string | null;
-  role: 'admin' | 'staff' | 'coach' | 'members' | 'students' | 'guest';
+  role: 'admin' | 'staff' | 'coach' | 'member' | 'student' | 'guest';
   updatedAt: string;
   createdAt: string;
   email: string;

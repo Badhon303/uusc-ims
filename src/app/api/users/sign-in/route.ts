@@ -5,13 +5,14 @@ import { APIError } from 'payload'
 
 // Define the structure of the expected request body
 // Note: In a real app, this interface should ideally live in a shared 'types' folder
+
 interface RegisterBody {
   email: string
   password: string
   name: string
   contactNumber: string
   address: string
-  role: 'members' | 'students' | 'guest'
+  role: 'member' | 'student' | 'guest'
 }
 
 export const OPTIONS = async (request: Request) => {
@@ -38,7 +39,7 @@ export const POST = async (request: Request) => {
     }
 
     // Security Check: Restrict roles for registration
-    const allowedRegistrationRoles = ['members', 'students', 'guest']
+    const allowedRegistrationRoles = ['member', 'student', 'guest']
     if (!allowedRegistrationRoles.includes(role)) {
       throw new APIError('Invalid role selected for registration.', 400)
     }

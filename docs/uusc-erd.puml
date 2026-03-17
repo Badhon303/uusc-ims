@@ -12,9 +12,9 @@ entity Users {
   *id: INT
   --
   *email: email
-  *contactNumber: regex
-  *role: enum[Admin, Staff, Coach, Members, Guest]
   *name: text
+  *contactNumber: regex
+  *role: enum[Admin, Staff, Coach, Members, Student, Guest]
   address: text
 }
 
