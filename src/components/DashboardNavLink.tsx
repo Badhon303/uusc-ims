@@ -14,6 +14,7 @@ const DashboardNavLink = () => {
             width={90}
             height={90}
             style={{ paddingBottom: '20px' }}
+            unoptimized
           />
         </Link>
       </div>
