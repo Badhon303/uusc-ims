@@ -54,13 +54,6 @@ entity Students {
   achievements: array[photoId, description]
 }
 
-entity Guests {
-  *id: INT <<PK>>
-  --
-  *userId: INT <<FK>>
-  photoId: INT <<FK>>
-}
-
 entity Staffs {
   *id: INT <<PK>>
   --
@@ -344,7 +337,6 @@ entity Sponsorship {
 
 Users ||--o| Members
 Users ||--o| Students
-Users ||--o| Guests
 Users ||--o| Staffs
 Users ||--o| Coaches
 

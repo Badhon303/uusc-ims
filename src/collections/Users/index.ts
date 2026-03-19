@@ -6,8 +6,8 @@ import path from 'path'
 export const Users: CollectionConfig = {
   slug: 'users',
   labels: {
-    singular: '👤 User',
-    plural: '👤 Users',
+    singular: '🐻‍❄️ User',
+    plural: '🐻‍❄️ Users',
   },
   admin: {
     useAsTitle: 'email',
