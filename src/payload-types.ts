@@ -71,6 +71,8 @@ export interface Config {
     media: Media;
     packages: Package;
     members: Member;
+    managers: Manager;
+    staffs: Staff;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -82,6 +84,8 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     packages: PackagesSelect<false> | PackagesSelect<true>;
     members: MembersSelect<false> | MembersSelect<true>;
+    managers: ManagersSelect<false> | ManagersSelect<true>;
+    staffs: StaffsSelect<false> | StaffsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -130,7 +134,7 @@ export interface User {
   name: string;
   contactNumber?: string | null;
   address?: string | null;
-  role: 'admin' | 'staff' | 'coach' | 'member' | 'student' | 'guest';
+  role: 'admin' | 'manager' | 'coach' | 'member' | 'student' | 'guest';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -212,10 +216,22 @@ export interface Package {
 export interface Member {
   id: number;
   user: number | User;
+  totalDue?: number | null;
+  totalPaid?: number | null;
   profilePicture?: (number | null) | Media;
-  status: 'active' | 'inactive';
   joinDate: string;
-  totalDue: number;
+  registrationFee: number;
+  status: 'active' | 'pending' | 'inactive';
+  payments?:
+    | {
+        paymentMonth?: string | null;
+        amount: number;
+        paymentMethod: 'cash' | 'mobile-banking' | 'card';
+        transactionRef?: string | null;
+        status: 'paid' | 'unpaid';
+        id?: string | null;
+      }[]
+    | null;
   achievements?:
     | {
         title: string;
@@ -225,7 +241,58 @@ export interface Member {
         id?: string | null;
       }[]
     | null;
-  package: number | Package;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "managers".
+ */
+export interface Manager {
+  id: number;
+  user: number | User;
+  totalDue?: number | null;
+  totalPaid?: number | null;
+  profilePicture?: (number | null) | Media;
+  joinDate: string;
+  status: 'active' | 'pending' | 'inactive';
+  salaries?:
+    | {
+        paymentMonth?: string | null;
+        salary: number;
+        paymentMethod: 'cash' | 'mobile-banking' | 'card';
+        transactionRef?: string | null;
+        status: 'paid' | 'unpaid';
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "staffs".
+ */
+export interface Staff {
+  id: number;
+  name: string;
+  totalDue?: number | null;
+  totalPaid?: number | null;
+  profilePicture?: (number | null) | Media;
+  contactNumber: string;
+  address?: string | null;
+  joinDate: string;
+  status: 'active' | 'pending' | 'inactive';
+  salaries?:
+    | {
+        paymentMonth?: string | null;
+        salary: number;
+        paymentMethod: 'cash' | 'mobile-banking' | 'card';
+        transactionRef?: string | null;
+        status: 'paid' | 'unpaid';
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -268,6 +335,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'members';
         value: number | Member;
+      } | null)
+    | ({
+        relationTo: 'managers';
+        value: number | Manager;
+      } | null)
+    | ({
+        relationTo: 'staffs';
+        value: number | Staff;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -402,10 +477,22 @@ export interface PackagesSelect<T extends boolean = true> {
  */
 export interface MembersSelect<T extends boolean = true> {
   user?: T;
-  profilePicture?: T;
-  status?: T;
-  joinDate?: T;
   totalDue?: T;
+  totalPaid?: T;
+  profilePicture?: T;
+  joinDate?: T;
+  registrationFee?: T;
+  status?: T;
+  payments?:
+    | T
+    | {
+        paymentMonth?: T;
+        amount?: T;
+        paymentMethod?: T;
+        transactionRef?: T;
+        status?: T;
+        id?: T;
+      };
   achievements?:
     | T
     | {
@@ -415,7 +502,56 @@ export interface MembersSelect<T extends boolean = true> {
         picture?: T;
         id?: T;
       };
-  package?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "managers_select".
+ */
+export interface ManagersSelect<T extends boolean = true> {
+  user?: T;
+  totalDue?: T;
+  totalPaid?: T;
+  profilePicture?: T;
+  joinDate?: T;
+  status?: T;
+  salaries?:
+    | T
+    | {
+        paymentMonth?: T;
+        salary?: T;
+        paymentMethod?: T;
+        transactionRef?: T;
+        status?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "staffs_select".
+ */
+export interface StaffsSelect<T extends boolean = true> {
+  name?: T;
+  totalDue?: T;
+  totalPaid?: T;
+  profilePicture?: T;
+  contactNumber?: T;
+  address?: T;
+  joinDate?: T;
+  status?: T;
+  salaries?:
+    | T
+    | {
+        paymentMonth?: T;
+        salary?: T;
+        paymentMethod?: T;
+        transactionRef?: T;
+        status?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

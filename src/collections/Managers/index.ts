@@ -1,60 +1,24 @@
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
 
-export const getMemberPackage = async (req: any) => {
-  // ✅ If already fetched, reuse
-  if (req.memberPackage) return req.memberPackage
-
-  const result = await req.payload.find({
-    collection: 'packages',
-    where: {
-      title: {
-        equals: 'Club Members',
-      },
-    },
-    limit: 1,
-  })
-
-  req.memberPackage = result.docs?.[0] || null
-
-  return req.memberPackage
-}
-
-export const Members: CollectionConfig = {
-  slug: 'members',
+export const Managers: CollectionConfig = {
+  slug: 'managers',
   labels: {
-    singular: '🦖 Member',
-    plural: '🦖 Members',
+    singular: '🐷 Manager',
+    plural: '🐷 Managers',
   },
   admin: {
     useAsTitle: 'user',
   },
   access: {
     read: () => true,
-    create: ({ req: { user } }) => {
-      if (!user) return false
-      return ['admin', 'manager'].includes(user.role)
-    },
-    update: ({ req: { user } }) => {
-      if (!user) return false
-      if (user.role === 'admin' || user.role === 'manager') return true
-      return {
-        'user.id': { equals: user.id },
-      }
-    },
+    create: isAdmin,
+    update: isAdmin,
     delete: isAdmin,
   },
   fields: [
     {
       type: 'row',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'user',
@@ -63,9 +27,6 @@ export const Members: CollectionConfig = {
           required: true,
           unique: true,
           hasMany: false,
-          defaultValue: ({ user }) => {
-            return user?.id
-          },
         },
         {
           name: 'totalDue',
@@ -92,28 +53,11 @@ export const Members: CollectionConfig = {
     },
     {
       type: 'row',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'joinDate',
           type: 'date',
           defaultValue: new Date().toISOString(),
-          required: true,
-        },
-        {
-          name: 'registrationFee',
-          type: 'number',
-          defaultValue: async ({ req }) => {
-            const pkg = await getMemberPackage(req)
-            return pkg?.registrationFee || 0
-          },
           required: true,
         },
         {
@@ -139,16 +83,8 @@ export const Members: CollectionConfig = {
       ],
     },
     {
-      name: 'payments',
+      name: 'salaries',
       type: 'array',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'paymentMonth',
@@ -161,16 +97,10 @@ export const Members: CollectionConfig = {
           defaultValue: () => new Date(),
         },
         {
-          name: 'amount',
+          name: 'salary',
           type: 'number',
           required: true,
-          admin: {
-            readOnly: true,
-          },
-          defaultValue: async ({ req }) => {
-            const pkg = await getMemberPackage(req)
-            return pkg?.price || 0
-          },
+          defaultValue: 0,
         },
         {
           name: 'paymentMethod',
@@ -199,37 +129,11 @@ export const Members: CollectionConfig = {
         },
       ],
     },
-    {
-      name: 'achievements',
-      type: 'array',
-      fields: [
-        {
-          name: 'title',
-          type: 'text',
-          required: true,
-        },
-        {
-          name: 'description',
-          type: 'text',
-          required: true,
-        },
-        {
-          name: 'date',
-          type: 'date',
-          required: true,
-        },
-        {
-          name: 'picture',
-          type: 'upload',
-          relationTo: 'media',
-        },
-      ],
-    },
   ],
   hooks: {
     beforeChange: [
       ({ data }) => {
-        if (data.payments && Array.isArray(data.payments)) {
+        if (data.salaries && Array.isArray(data.salaries)) {
           data.totalPaid = data.payments
             .filter((p: any) => p.status === 'paid')
             .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)

@@ -10,7 +10,7 @@ export const Users: CollectionConfig = {
     plural: '🐻‍❄️ Users',
   },
   admin: {
-    useAsTitle: 'email',
+    useAsTitle: 'name',
   },
   auth: {
     tokenExpiration: 604800, // 7 days
@@ -104,8 +104,8 @@ export const Users: CollectionConfig = {
           value: 'admin',
         },
         {
-          label: 'Staff',
-          value: 'staff',
+          label: 'Manager',
+          value: 'manager',
         },
         {
           label: 'Coach',

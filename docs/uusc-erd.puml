@@ -14,7 +14,7 @@ entity Users {
   *email: email
   *name: text
   *contactNumber: regex
-  *role: enum[Admin, Staff, Coach, Members, Student, Guest]
+  *role: enum[Admin, Manager, Coach, Members, Student, Guest]
   address: text
 }
 
@@ -28,20 +28,22 @@ entity Members {
   *id: INT
   --
   *userId: INT <<FK>>
-  photoId: INT <<FK>>
-  *packageId: INT <<FK>>
+  profilePictureId: INT <<FK>>
+  memberPaymentId: array[INT] <<FK>>
+  *status: enum[active, pending, inactive]
   joinDate: date
-  *membershipStatus: enum[active, pending, inactive]
   totalDue: number
+  totalPaid: number
   achievements: array[photoId, description]
+  *registrationFee: number
 }
 
 entity Students {
   *id: INT <<PK>>
   --
   *userId: INT <<FK>>
-  *packageId: INT <<FK>>
-  photoId: INT <<FK>>
+  *studentPaymentId: array[INT] <<FK>>
+  profilePictureId: INT <<FK>>
   parentName: text
   parentContactNumber: regex
   joinDate: date
@@ -54,36 +56,41 @@ entity Students {
   achievements: array[photoId, description]
 }
 
-entity Staffs {
+entity Manager {
   *id: INT <<PK>>
   --
   *userId: INT <<FK>>
-  photoId: INT <<FK>>
-  *role: enum[Manager, Maid, Staff]
+  managerSalaryId: array[INT] <<FK>>
   *joinDate: date
-  *salary: decimal
+  status: enum[active, pending, inactive]
+}
+
+entity Staffs {
+  *id: INT <<PK>>
+  --
+  profilePictureId: INT <<FK>>
+  staffSalaryId: array[INT] <<FK>>
+  name: text
+  contactNumber: regex
+  address: text
+  *joinDate: date
+  status: enum[active, pending, inactive]
 }
 
 entity Coaches {
   *id: INT <<PK>>
   --
   *userId: INT <<FK>>
+  coachSalaryId: array[INT] <<FK>>
   specialization: richText
   certification: array[protoId, description]
   join_date: date
-  *salary: number
+  status: enum[active, pending, inactive]
 }
 
 ' =====================================================
 ' ATTENDANCE
 ' =====================================================
-
-entity MemberAttendance {
-  *id: INT <<PK>>
-  --
-  *memberId: INT <<FK>>
-  *presentDate: date
-}
 
 entity CoachAttendance {
   *id: INT <<PK>>
@@ -96,13 +103,6 @@ entity StudentAttendance {
   *id: INT <<PK>>
   --
   *studentId: INT <<FK>>
-  *presentDate: date
-}
-
-entity StaffAttendance {
-  *id: INT <<PK>>
-  --
-  *staffId: INT <<FK>>
   *presentDate: date
 }
 
@@ -119,48 +119,24 @@ entity Packages {
   description: richText
 }
 
-entity MemberSubscriptionPayments {
+entity MemberPayments {
   *id: INT <<PK>>
   --
-  *memberId: INT <<FK>>
+  *paymentMonth: date
   *amount: number
-  *paymentDate: date
-  *year: year
-  *months: date
+  paymentMethod: enum[cash, mobile-banking, card]
+  transactionRef: text
+  *status: enum[Paid, Unpaid]
+}
+
+entity StudentPayments {
+  *id: INT <<PK>>
+  --
+  *paymentMonth: date
+  *amount: number
+  paymentMethod: enum[cash, mobile-banking, card]
   transactionRef: text
   *status: enum[Due, Paid]
-  due: number
-}
-
-entity StudentsSubscriptionPayments {
-  *id: INT <<PK>>
-  --
-  *studentId: INT <<FK>>
-  *amount: number
-  *paymentDate: date
-  *year: year
-  *months: date
-  transactionRef: text
-  *status: enum[Due, Paid]
-  due: number
-}
-
-entity MemberRegistrationFees {
-  *id: INT <<PK>>
-  --
-  *memberId: INT <<FK>>
-  *amount: number
-  *paymentDate: date
-  transactionRef: text
-}
-
-entity StudentRegistrationFees {
-  *id: INT <<PK>>
-  --
-  *studentId: INT <<FK>>
-  *amount: number
-  *paymentDate: date
-  transactionRef: text
 }
 
 ' =====================================================
@@ -300,11 +276,28 @@ entity Expenditure {
   description: textarea
 }
 
-entity SalaryRecord {
+entity managerSalary {
   *id: INT <<PK>>
   --
-  *staffId: INT <<FK>>
-  *month: date
+  *paymentMonth: date
+  *salary: number
+  bonus: number
+  *status: enum[Due, Paid]
+}
+
+entity staffSalary {
+  *id: INT <<PK>>
+  --
+  *paymentMonth: date
+  *salary: number
+  bonus: number
+  *status: enum[Due, Paid]
+}
+
+entity coachSalary {
+  *id: INT <<PK>>
+  --
+  *paymentMonth: date
   *salary: number
   bonus: number
   *status: enum[Due, Paid]
@@ -337,21 +330,14 @@ entity Sponsorship {
 
 Users ||--o| Members
 Users ||--o| Students
-Users ||--o| Staffs
 Users ||--o| Coaches
+Users ||--o| Manager
 
-Members ||--o| MemberAttendance
-Members |o--|| Packages
 Coaches ||--o| CoachAttendance
 Students ||--o| StudentAttendance
-Students |o--|| Packages
-Staffs ||--o| StaffAttendance
 
-Members ||--o{ MemberSubscriptionPayments
-Students ||--{ StudentsSubscriptionPayments
-
-Members ||--o| MemberRegistrationFees
-Students ||--o| StudentRegistrationFees
+Members }o--|| MemberPayments
+Students }o--|| StudentPayments
 
 TrainingGroup }o--|| Students
 TrainingGroup |o--|| Coaches
@@ -380,6 +366,8 @@ TournamentMatches |o--|| Courts
 Tournaments ||--o| TournamentResults 
 TournamentTeams ||--o| TournamentResults 
 
-Staffs ||--o{ SalaryRecord 
+Manager }o--|| managerSalary 
+Staffs }o--|| staffSalary 
+Coaches }o--|| coachSalary 
 
 @enduml

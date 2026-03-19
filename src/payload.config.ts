@@ -11,6 +11,8 @@ import { allowedOrigins } from './utils/cors/corsHandler'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { Packages } from './collections/Packages'
 import { Members } from './collections/Members'
+import { Managers } from './collections/Managers'
+import { Staffs } from './collections/Staffs'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -46,7 +48,7 @@ export default buildConfig({
       titleSuffix: 'UUSC - Admin Panel',
     },
   },
-  collections: [Users, Media, Packages, Members],
+  collections: [Users, Media, Packages, Members, Managers, Staffs],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
