@@ -21,20 +21,27 @@ export const TournamentResults: CollectionConfig = {
       required: true,
     },
     {
-      name: 'teamId',
-      type: 'relationship',
-      relationTo: 'tournament-teams',
+      name: 'teamPositions',
+      type: 'array',
       required: true,
-    },
-    {
-      name: 'position',
-      type: 'number',
-      required: true,
-    },
-    {
-      name: 'prizeAmount',
-      type: 'number',
-      required: true,
+      fields: [
+        {
+          name: 'teamId',
+          type: 'relationship',
+          relationTo: 'tournament-teams',
+          required: true,
+        },
+        {
+          name: 'position',
+          type: 'number',
+          required: true,
+        },
+        {
+          name: 'prizeAmount',
+          type: 'number',
+          required: true,
+        },
+      ],
     },
   ],
 }

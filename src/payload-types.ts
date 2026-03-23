@@ -89,6 +89,8 @@ export interface Config {
     tournaments: Tournament;
     'tournament-registrations': TournamentRegistration;
     'tournament-teams': TournamentTeam;
+    'tournament-matches': TournamentMatch;
+    'tournament-results': TournamentResult;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -118,6 +120,8 @@ export interface Config {
     tournaments: TournamentsSelect<false> | TournamentsSelect<true>;
     'tournament-registrations': TournamentRegistrationsSelect<false> | TournamentRegistrationsSelect<true>;
     'tournament-teams': TournamentTeamsSelect<false> | TournamentTeamsSelect<true>;
+    'tournament-matches': TournamentMatchesSelect<false> | TournamentMatchesSelect<true>;
+    'tournament-results': TournamentResultsSelect<false> | TournamentResultsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -663,11 +667,41 @@ export interface TournamentRegistration {
  */
 export interface TournamentTeam {
   id: number;
+  tournament: number | Tournament;
+  teamName: string;
+  playerOne: number | User;
+  playerTwo: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-matches".
+ */
+export interface TournamentMatch {
+  id: number;
+  tournament: number | Tournament;
+  teamOne: number | TournamentTeam;
+  teamTwo?: (number | null) | TournamentTeam;
+  court: number | Court;
+  winner: number | TournamentTeam;
+  scheduledTime: string;
+  teamOneScore: number;
+  teamTwoScore: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-results".
+ */
+export interface TournamentResult {
+  id: number;
   tournamentId: number | Tournament;
-  teams: {
-    teamName: string;
-    playerOne: number | User;
-    playerTwo: number | User;
+  teamPositions: {
+    teamId: number | TournamentTeam;
+    position: number;
+    prizeAmount: number;
     id?: string | null;
   }[];
   updatedAt: string;
@@ -784,6 +818,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'tournament-teams';
         value: number | TournamentTeam;
+      } | null)
+    | ({
+        relationTo: 'tournament-matches';
+        value: number | TournamentMatch;
+      } | null)
+    | ({
+        relationTo: 'tournament-results';
+        value: number | TournamentResult;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1276,13 +1318,41 @@ export interface TournamentRegistrationsSelect<T extends boolean = true> {
  * via the `definition` "tournament-teams_select".
  */
 export interface TournamentTeamsSelect<T extends boolean = true> {
+  tournament?: T;
+  teamName?: T;
+  playerOne?: T;
+  playerTwo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-matches_select".
+ */
+export interface TournamentMatchesSelect<T extends boolean = true> {
+  tournament?: T;
+  teamOne?: T;
+  teamTwo?: T;
+  court?: T;
+  winner?: T;
+  scheduledTime?: T;
+  teamOneScore?: T;
+  teamTwoScore?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-results_select".
+ */
+export interface TournamentResultsSelect<T extends boolean = true> {
   tournamentId?: T;
-  teams?:
+  teamPositions?:
     | T
     | {
-        teamName?: T;
-        playerOne?: T;
-        playerTwo?: T;
+        teamId?: T;
+        position?: T;
+        prizeAmount?: T;
         id?: T;
       };
   updatedAt?: T;

@@ -3,8 +3,8 @@ import { CollectionConfig } from 'payload'
 export const TournamentRegistrations: CollectionConfig = {
   slug: 'tournament-registrations',
   labels: {
-    singular: 'Tournament Registration',
-    plural: 'Tournament Registrations',
+    singular: '🪅 Tournament Registration',
+    plural: '🪅 Tournament Registrations',
   },
   access: {
     read: () => true,
