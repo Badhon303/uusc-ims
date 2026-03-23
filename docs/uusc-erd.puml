@@ -9,7 +9,7 @@ skinparam defaultFontSize 11
 ' =====================================================
 
 entity Users {
-  *id: INT
+  *id: INT <<PK>>
   --
   *email: email
   *name: text
@@ -19,40 +19,34 @@ entity Users {
 }
 
 entity Media {
-  *id: INT
+  *id: INT <<PK>>
   --
   alt: text
 }
 
 entity Members {
-  *id: INT
+  *id: INT <<PK>>
   --
   *userId: INT <<FK>>
   profilePictureId: INT <<FK>>
-  memberPaymentId: array[INT] <<FK>>
   *status: enum[active, pending, inactive]
   joinDate: date
   totalDue: number
   totalPaid: number
   achievements: array[photoId, description]
-  *registrationFee: number
 }
 
 entity Students {
   *id: INT <<PK>>
   --
   *userId: INT <<FK>>
-  *studentPaymentId: array[INT] <<FK>>
   profilePictureId: INT <<FK>>
   parentName: text
   parentContactNumber: regex
   joinDate: date
   skillLevel: enum
   ranking: number
-  lessons_missed: array[]
-  totalDue: number
   *membershipStatus: enum[active, pending, inactive]
-  remarks: array[]
   achievements: array[photoId, description]
 }
 
@@ -92,18 +86,11 @@ entity Coaches {
 ' ATTENDANCE
 ' =====================================================
 
-entity CoachAttendance {
-  *id: INT <<PK>>
-  --
-  *coachProfileId: INT <<FK>>
-  *presentDate: date
-}
-
 entity StudentAttendance {
   *id: INT <<PK>>
   --
   *studentId: INT <<FK>>
-  *presentDate: date
+  *attendances: array[Month, Notes, AbsentDays[type, date]]
 }
 
 ' =====================================================
@@ -122,6 +109,8 @@ entity Packages {
 entity MemberPayments {
   *id: INT <<PK>>
   --
+  *memberId: INT <<FK>>
+  *registrationFee: number
   *paymentMonth: date
   *amount: number
   paymentMethod: enum[cash, mobile-banking, card]
@@ -132,6 +121,8 @@ entity MemberPayments {
 entity StudentPayments {
   *id: INT <<PK>>
   --
+  *studentId: INT <<FK>>
+  *registrationFee: number
   *paymentMonth: date
   *amount: number
   paymentMethod: enum[cash, mobile-banking, card]
@@ -152,11 +143,20 @@ entity TrainingGroup {
   *skillLevel: enum[beginner, intermediate, pro]
 }
 
-entity TrainingSchedule {
+entity TrainingSchedules {
   *id: INT <<PK>>
   --
   *trainingGroupId: INT <<FK>>
   *coachId: INT <<FK>>
+  *courtId: INT <<FK>>
+  *dayOfWeek: enum
+  *startTime: datetime
+  *endTime: datetime
+}
+
+entity MembersSchedules {
+  *id: INT <<PK>>
+  --
   *courtId: INT <<FK>>
   *dayOfWeek: enum
   *startTime: datetime
@@ -168,9 +168,7 @@ entity StudentProgress {
   --
   *studentId: INT <<FK>>
   *coachId: INT <<FK>>
-  *evaluationDate: date
-  *evaluation: array[skillCategory, score]
-  notes: string
+  *evaluation: array[skillCategory, score, remarks]
 }
 
 ' =====================================================
@@ -181,15 +179,8 @@ entity Courts {
   *Id: INT <<PK>>
   --
   *courtName: string
-  description: string
-}
-
-entity CourtPricing {
-  *Id: INT <<PK>>
-  --
-  *courtId: INT <<FK>>
-  *pricingType: enum[peak, offPeak]
-  *pricePerHour: number
+  peakHorPrice: number
+  normalHorPrice: number
 }
 
 entity CourtBookings {
@@ -197,7 +188,6 @@ entity CourtBookings {
   --
   *courtId: INT <<FK>>
   *userId: INT <<FK>>
-  *courtPricingId: INT <<FK>>
   *bookingDate: date
   *startTime: datetime
   *endTime: datetime
@@ -214,9 +204,10 @@ entity Tournaments {
   *id: INT <<PK>>
   --
   *tournamentName: text
+  *registrationFee: number
   *tournamentType: enum[Academy, Members, Academy&Members, OpenForAll]
-  start_date: date
-  registrationEndDate: datetime
+  registrationStartDate: date
+  registrationEndDate: date
   status: enum[open, closed]
 }
 
@@ -226,9 +217,7 @@ entity TournamentRegistrations {
   *tournamentId: INT <<FK>>
   *userId: INT <<FK>>
   registrationDate: datetime
-  amount: number
   paymentDate: date
-  transactionRef: text
   status: enum[Due, paid]
 }
 
@@ -270,13 +259,14 @@ entity TournamentResults {
 entity Expenditure {
   *id: INT <<PK>>
   --
-  *expenditure_type: enum[Maintenance UtilityBill, EquipmentPurchase, TournamentExpenses, IndoorFacility, Miscellaneous]
+  *expenditure_type: enum[Salaries ...]
+' Maintenance, UtilityBill, EquipmentPurchase, TournamentExpenses, IndoorFacility, Miscellaneous
   *amount: decimal
   expenditureDate: date
   description: textarea
 }
 
-entity managerSalary {
+entity ManagerSalary {
   *id: INT <<PK>>
   --
   *paymentMonth: date
@@ -285,7 +275,7 @@ entity managerSalary {
   *status: enum[Due, Paid]
 }
 
-entity staffSalary {
+entity StaffSalary {
   *id: INT <<PK>>
   --
   *paymentMonth: date
@@ -294,7 +284,7 @@ entity staffSalary {
   *status: enum[Due, Paid]
 }
 
-entity coachSalary {
+entity CoachSalary {
   *id: INT <<PK>>
   --
   *paymentMonth: date
@@ -307,21 +297,23 @@ entity coachSalary {
 ' Income
 ' =====================================================
 
-entity othersIncome {
+entity Income {
   *id: INT <<PK>>
   --
   *amount: number
+  *income_type: enum[MembershipFee ...] 
+' MembershipFee, RegistrationFee, TournamentFee, Other
   incomeDate: date
   description: textarea
 }
 
-entity Sponsorship {
+entity Sponsors {
   *id: INT <<PK>>
   --
   photoId: INT <<FK>>
   *sponsorName: text
   *contactNumber: regex
-  amount: number
+  amounts: array[amount, date]
 }
 
 ' =====================================================
@@ -333,26 +325,28 @@ Users ||--o| Students
 Users ||--o| Coaches
 Users ||--o| Manager
 
-Coaches ||--o| CoachAttendance
+Packages ||--o| Members
+Packages ||--o| Students
+
 Students ||--o| StudentAttendance
 
-Members }o--|| MemberPayments
-Students }o--|| StudentPayments
+Members ||--o{ MemberPayments
+Students ||--o{ StudentPayments
 
 TrainingGroup }o--|| Students
 TrainingGroup |o--|| Coaches
 
-TrainingSchedule |o--|| TrainingGroup
-TrainingSchedule |o--|| Coaches
-TrainingSchedule |o--|| Courts
+TrainingSchedules |o--|| TrainingGroup
+TrainingSchedules |o--|| Coaches
+TrainingSchedules |o--|| Courts
+
+MembersSchedules |o--|| Courts
 
 StudentProgress |o--|| Students 
 Coaches ||--o| StudentProgress
 
-CourtPricing |o--|| Courts
 CourtBookings |o--|| Courts
 CourtBookings |o--|| Users
-CourtBookings |o--|| CourtPricing
 
 TournamentRegistrations |o--|| Users
 Tournaments ||--o| TournamentRegistrations
@@ -366,8 +360,23 @@ TournamentMatches |o--|| Courts
 Tournaments ||--o| TournamentResults 
 TournamentTeams ||--o| TournamentResults 
 
-Manager }o--|| managerSalary 
-Staffs }o--|| staffSalary 
-Coaches }o--|| coachSalary 
+Manager ||--o{ ManagerSalary 
+Staffs ||--o{ StaffSalary 
+Coaches ||--o{ CoachSalary
+
+Expenditure ||--o| ManagerSalary
+Expenditure ||--o| StaffSalary
+Expenditure ||--o| CoachSalary
+
+Income ||--o| MemberPayments
+Income ||--o| StudentPayments
+Income ||--o| TournamentRegistrations
+Income ||--o| Sponsors
+
+Media ||--o| Members
+Media ||--o| Students
+Media ||--o| Coaches
+Media ||--o| Manager
+Media ||--o| Sponsors
 
 @enduml

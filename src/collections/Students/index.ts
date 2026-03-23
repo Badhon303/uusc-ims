@@ -1,33 +1,34 @@
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
+import { getMemberPackage } from '../Members'
 
-export const getMemberPackage = async (req: any) => {
+export const getStudentPackage = async (req: any) => {
   // ✅ If already fetched, reuse
-  if (req.memberPackage) return req.memberPackage
+  if (req.studentPackage) return req.studentPackage
 
   const result = await req.payload.find({
     collection: 'packages',
     where: {
       title: {
-        equals: 'Club Members',
+        equals: 'Academy Students',
       },
     },
     limit: 1,
   })
 
-  req.memberPackage = result.docs?.[0] || null
+  req.studentPackage = result.docs?.[0] || null
 
-  return req.memberPackage
+  return req.studentPackage
 }
 
-export const Members: CollectionConfig = {
-  slug: 'members',
+export const Students: CollectionConfig = {
+  slug: 'students',
   labels: {
-    singular: '🦖 Member',
-    plural: '🦖 Members',
+    singular: '🦖 Student',
+    plural: '🦖 Students',
   },
   admin: {
-    useAsTitle: 'memberName',
+    useAsTitle: 'studentName',
   },
   access: {
     read: () => true,
@@ -46,7 +47,7 @@ export const Members: CollectionConfig = {
   },
   fields: [
     {
-      name: 'memberName',
+      name: 'studentName',
       type: 'text',
       admin: {
         hidden: true, // Don't show it as its own field in the UI
@@ -108,6 +109,56 @@ export const Members: CollectionConfig = {
       relationTo: 'media',
     },
     {
+      type: 'row',
+      fields: [
+        {
+          name: 'parentName',
+          type: 'text',
+        },
+        {
+          name: 'parentContactNumber',
+          type: 'text',
+        },
+      ],
+    },
+    {
+      type: 'row',
+      access: {
+        update: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'coach'
+        },
+        create: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'coach'
+        },
+      },
+      fields: [
+        {
+          name: 'skillLevel',
+          type: 'select',
+          options: [
+            {
+              label: 'Beginner',
+              value: 'beginner',
+            },
+            {
+              label: 'Intermediate',
+              value: 'intermediate',
+            },
+            {
+              label: 'Advanced',
+              value: 'advanced',
+            },
+          ],
+          defaultValue: 'beginner',
+        },
+        {
+          name: 'ranking',
+          type: 'number',
+          unique: true,
+        },
+      ],
+    },
+    {
       name: 'achievements',
       type: 'array',
       fields: [
@@ -140,7 +191,7 @@ export const Members: CollectionConfig = {
         if (doc?.user) {
           // If already populated (depth >= 1), use it directly — no extra query
           if (typeof doc.user === 'object') {
-            doc.memberName = doc.user.name ?? null
+            doc.studentName = doc.user.name ?? null
           } else {
             // Fallback for depth: 0 — manually fetch
             try {
@@ -149,9 +200,9 @@ export const Members: CollectionConfig = {
                 id: doc.user,
                 depth: 0,
               })
-              doc.memberName = userDoc?.name ?? null
+              doc.studentName = userDoc?.name ?? null
             } catch {
-              doc.memberName = null
+              doc.studentName = null
             }
           }
         }

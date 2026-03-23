@@ -73,6 +73,22 @@ export interface Config {
     members: Member;
     managers: Manager;
     staffs: Staff;
+    students: Student;
+    coaches: Coach;
+    'coach-salaries': CoachSalary;
+    'member-payments': MemberPayment;
+    'student-payments': StudentPayment;
+    'student-attendance': StudentAttendance;
+    'student-progress': StudentProgress;
+    'training-groups': TrainingGroup;
+    courts: Court;
+    'member-schedules': MemberSchedule;
+    'training-schedules': TrainingSchedule;
+    sponsors: Sponsor;
+    courtBookings: CourtBooking;
+    tournaments: Tournament;
+    'tournament-registrations': TournamentRegistration;
+    'tournament-teams': TournamentTeam;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +102,22 @@ export interface Config {
     members: MembersSelect<false> | MembersSelect<true>;
     managers: ManagersSelect<false> | ManagersSelect<true>;
     staffs: StaffsSelect<false> | StaffsSelect<true>;
+    students: StudentsSelect<false> | StudentsSelect<true>;
+    coaches: CoachesSelect<false> | CoachesSelect<true>;
+    'coach-salaries': CoachSalariesSelect<false> | CoachSalariesSelect<true>;
+    'member-payments': MemberPaymentsSelect<false> | MemberPaymentsSelect<true>;
+    'student-payments': StudentPaymentsSelect<false> | StudentPaymentsSelect<true>;
+    'student-attendance': StudentAttendanceSelect<false> | StudentAttendanceSelect<true>;
+    'student-progress': StudentProgressSelect<false> | StudentProgressSelect<true>;
+    'training-groups': TrainingGroupsSelect<false> | TrainingGroupsSelect<true>;
+    courts: CourtsSelect<false> | CourtsSelect<true>;
+    'member-schedules': MemberSchedulesSelect<false> | MemberSchedulesSelect<true>;
+    'training-schedules': TrainingSchedulesSelect<false> | TrainingSchedulesSelect<true>;
+    sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
+    courtBookings: CourtBookingsSelect<false> | CourtBookingsSelect<true>;
+    tournaments: TournamentsSelect<false> | TournamentsSelect<true>;
+    'tournament-registrations': TournamentRegistrationsSelect<false> | TournamentRegistrationsSelect<true>;
+    'tournament-teams': TournamentTeamsSelect<false> | TournamentTeamsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -215,23 +247,11 @@ export interface Package {
  */
 export interface Member {
   id: number;
+  memberName?: string | null;
   user: number | User;
-  totalDue?: number | null;
-  totalPaid?: number | null;
-  profilePicture?: (number | null) | Media;
   joinDate: string;
-  registrationFee: number;
   status: 'active' | 'pending' | 'inactive';
-  payments?:
-    | {
-        paymentMonth?: string | null;
-        amount: number;
-        paymentMethod: 'cash' | 'mobile-banking' | 'card';
-        transactionRef?: string | null;
-        status: 'paid' | 'unpaid';
-        id?: string | null;
-      }[]
-    | null;
+  profilePicture?: (number | null) | Media;
   achievements?:
     | {
         title: string;
@@ -298,6 +318,363 @@ export interface Staff {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "students".
+ */
+export interface Student {
+  id: number;
+  studentName?: string | null;
+  user: number | User;
+  joinDate: string;
+  status: 'active' | 'pending' | 'inactive';
+  profilePicture?: (number | null) | Media;
+  parentName?: string | null;
+  parentContactNumber?: string | null;
+  skillLevel?: ('beginner' | 'intermediate' | 'advanced') | null;
+  ranking?: number | null;
+  achievements?:
+    | {
+        title: string;
+        description: string;
+        date: string;
+        picture?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coaches".
+ */
+export interface Coach {
+  id: number;
+  coachName?: string | null;
+  user: number | User;
+  joinDate: string;
+  status: 'active' | 'pending' | 'inactive';
+  profilePicture?: (number | null) | Media;
+  specialization?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  certifications?:
+    | {
+        title: string;
+        description: string;
+        date: string;
+        picture?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  achievements?:
+    | {
+        title: string;
+        description: string;
+        date: string;
+        picture?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coach-salaries".
+ */
+export interface CoachSalary {
+  id: number;
+  coach: number | Coach;
+  totalDue?: number | null;
+  totalPaid?: number | null;
+  salaries?:
+    | {
+        paymentMonth?: string | null;
+        salary: number;
+        paymentMethod: 'cash' | 'mobile-banking' | 'card';
+        transactionRef?: string | null;
+        status: 'paid' | 'unpaid';
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-payments".
+ */
+export interface MemberPayment {
+  id: number;
+  user: number | Member;
+  totalDue?: number | null;
+  totalPaid?: number | null;
+  registrationFee: number;
+  payments?:
+    | {
+        paymentMonth?: string | null;
+        amount: number;
+        paymentMethod: 'cash' | 'mobile-banking' | 'card';
+        transactionRef?: string | null;
+        status: 'paid' | 'unpaid';
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "student-payments".
+ */
+export interface StudentPayment {
+  id: number;
+  student: number | Student;
+  totalDue?: number | null;
+  totalPaid?: number | null;
+  registrationFee: number;
+  payments?:
+    | {
+        paymentMonth?: string | null;
+        amount: number;
+        paymentMethod: 'cash' | 'mobile-banking' | 'card';
+        transactionRef?: string | null;
+        status: 'paid' | 'unpaid';
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "student-attendance".
+ */
+export interface StudentAttendance {
+  id: number;
+  student: number | Student;
+  attendances?:
+    | {
+        attendanceMonth?: string | null;
+        notes?: string | null;
+        absentDates?:
+          | {
+              type?: ('single' | 'range') | null;
+              date?: string | null;
+              from?: string | null;
+              to?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "student-progress".
+ */
+export interface StudentProgress {
+  id: number;
+  student: number | Student;
+  coach: number | Coach;
+  evaluations?:
+    | {
+        evaluationMonth?: string | null;
+        remarks?: string | null;
+        evaluation?:
+          | {
+              skillCategory?:
+                | (
+                    | 'forehand'
+                    | 'backhand'
+                    | 'serve'
+                    | 'smash'
+                    | 'dropShot'
+                    | 'netPlay'
+                    | 'footwork'
+                    | 'stamina'
+                    | 'technique'
+                    | 'strategy'
+                  )
+                | null;
+              score?: number | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "training-groups".
+ */
+export interface TrainingGroup {
+  id: number;
+  name: string;
+  coach: number | Coach;
+  students?: (number | Student)[] | null;
+  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courts".
+ */
+export interface Court {
+  id: number;
+  name: string;
+  peakHourPrice: number;
+  normalHourPrice: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-schedules".
+ */
+export interface MemberSchedule {
+  id: number;
+  courtId: number | Court;
+  dayOfWeek: 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+  startTime: string;
+  endTime: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "training-schedules".
+ */
+export interface TrainingSchedule {
+  id: number;
+  trainingGroupId: number | TrainingGroup;
+  coachId: number | Coach;
+  courtId: number | Court;
+  dayOfWeek: 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+  startTime: string;
+  endTime: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sponsors".
+ */
+export interface Sponsor {
+  id: number;
+  name: string;
+  picture?: (number | null) | Media;
+  contactNumber?: string | null;
+  amounts?:
+    | {
+        amount: number;
+        date: string;
+        id?: string | null;
+      }[]
+    | null;
+  description: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courtBookings".
+ */
+export interface CourtBooking {
+  id: number;
+  user: number | User;
+  court: number | Court;
+  bookings: {
+    bookingDate: string;
+    startTime: string;
+    endTime: string;
+    id?: string | null;
+  }[];
+  totalPrice: number;
+  paymentStatus: 'paid' | 'unpaid';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournaments".
+ */
+export interface Tournament {
+  id: number;
+  name: string;
+  tournamentType: 'academy' | 'members' | 'academy&members' | 'openForAll';
+  registrationFee: number;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  status: 'open' | 'closed';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-registrations".
+ */
+export interface TournamentRegistration {
+  id: number;
+  tournamentId: number | Tournament;
+  userId: number | User;
+  registrationDate: string;
+  paymentStatus: 'paid' | 'unpaid';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-teams".
+ */
+export interface TournamentTeam {
+  id: number;
+  tournamentId: number | Tournament;
+  teams: {
+    teamName: string;
+    playerOne: number | User;
+    playerTwo: number | User;
+    id?: string | null;
+  }[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -343,6 +720,70 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'staffs';
         value: number | Staff;
+      } | null)
+    | ({
+        relationTo: 'students';
+        value: number | Student;
+      } | null)
+    | ({
+        relationTo: 'coaches';
+        value: number | Coach;
+      } | null)
+    | ({
+        relationTo: 'coach-salaries';
+        value: number | CoachSalary;
+      } | null)
+    | ({
+        relationTo: 'member-payments';
+        value: number | MemberPayment;
+      } | null)
+    | ({
+        relationTo: 'student-payments';
+        value: number | StudentPayment;
+      } | null)
+    | ({
+        relationTo: 'student-attendance';
+        value: number | StudentAttendance;
+      } | null)
+    | ({
+        relationTo: 'student-progress';
+        value: number | StudentProgress;
+      } | null)
+    | ({
+        relationTo: 'training-groups';
+        value: number | TrainingGroup;
+      } | null)
+    | ({
+        relationTo: 'courts';
+        value: number | Court;
+      } | null)
+    | ({
+        relationTo: 'member-schedules';
+        value: number | MemberSchedule;
+      } | null)
+    | ({
+        relationTo: 'training-schedules';
+        value: number | TrainingSchedule;
+      } | null)
+    | ({
+        relationTo: 'sponsors';
+        value: number | Sponsor;
+      } | null)
+    | ({
+        relationTo: 'courtBookings';
+        value: number | CourtBooking;
+      } | null)
+    | ({
+        relationTo: 'tournaments';
+        value: number | Tournament;
+      } | null)
+    | ({
+        relationTo: 'tournament-registrations';
+        value: number | TournamentRegistration;
+      } | null)
+    | ({
+        relationTo: 'tournament-teams';
+        value: number | TournamentTeam;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -476,23 +917,11 @@ export interface PackagesSelect<T extends boolean = true> {
  * via the `definition` "members_select".
  */
 export interface MembersSelect<T extends boolean = true> {
+  memberName?: T;
   user?: T;
-  totalDue?: T;
-  totalPaid?: T;
-  profilePicture?: T;
   joinDate?: T;
-  registrationFee?: T;
   status?: T;
-  payments?:
-    | T
-    | {
-        paymentMonth?: T;
-        amount?: T;
-        paymentMethod?: T;
-        transactionRef?: T;
-        status?: T;
-        id?: T;
-      };
+  profilePicture?: T;
   achievements?:
     | T
     | {
@@ -550,6 +979,310 @@ export interface StaffsSelect<T extends boolean = true> {
         paymentMethod?: T;
         transactionRef?: T;
         status?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "students_select".
+ */
+export interface StudentsSelect<T extends boolean = true> {
+  studentName?: T;
+  user?: T;
+  joinDate?: T;
+  status?: T;
+  profilePicture?: T;
+  parentName?: T;
+  parentContactNumber?: T;
+  skillLevel?: T;
+  ranking?: T;
+  achievements?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        date?: T;
+        picture?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coaches_select".
+ */
+export interface CoachesSelect<T extends boolean = true> {
+  coachName?: T;
+  user?: T;
+  joinDate?: T;
+  status?: T;
+  profilePicture?: T;
+  specialization?: T;
+  certifications?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        date?: T;
+        picture?: T;
+        id?: T;
+      };
+  achievements?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        date?: T;
+        picture?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coach-salaries_select".
+ */
+export interface CoachSalariesSelect<T extends boolean = true> {
+  coach?: T;
+  totalDue?: T;
+  totalPaid?: T;
+  salaries?:
+    | T
+    | {
+        paymentMonth?: T;
+        salary?: T;
+        paymentMethod?: T;
+        transactionRef?: T;
+        status?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-payments_select".
+ */
+export interface MemberPaymentsSelect<T extends boolean = true> {
+  user?: T;
+  totalDue?: T;
+  totalPaid?: T;
+  registrationFee?: T;
+  payments?:
+    | T
+    | {
+        paymentMonth?: T;
+        amount?: T;
+        paymentMethod?: T;
+        transactionRef?: T;
+        status?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "student-payments_select".
+ */
+export interface StudentPaymentsSelect<T extends boolean = true> {
+  student?: T;
+  totalDue?: T;
+  totalPaid?: T;
+  registrationFee?: T;
+  payments?:
+    | T
+    | {
+        paymentMonth?: T;
+        amount?: T;
+        paymentMethod?: T;
+        transactionRef?: T;
+        status?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "student-attendance_select".
+ */
+export interface StudentAttendanceSelect<T extends boolean = true> {
+  student?: T;
+  attendances?:
+    | T
+    | {
+        attendanceMonth?: T;
+        notes?: T;
+        absentDates?:
+          | T
+          | {
+              type?: T;
+              date?: T;
+              from?: T;
+              to?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "student-progress_select".
+ */
+export interface StudentProgressSelect<T extends boolean = true> {
+  student?: T;
+  coach?: T;
+  evaluations?:
+    | T
+    | {
+        evaluationMonth?: T;
+        remarks?: T;
+        evaluation?:
+          | T
+          | {
+              skillCategory?: T;
+              score?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "training-groups_select".
+ */
+export interface TrainingGroupsSelect<T extends boolean = true> {
+  name?: T;
+  coach?: T;
+  students?: T;
+  skillLevel?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courts_select".
+ */
+export interface CourtsSelect<T extends boolean = true> {
+  name?: T;
+  peakHourPrice?: T;
+  normalHourPrice?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-schedules_select".
+ */
+export interface MemberSchedulesSelect<T extends boolean = true> {
+  courtId?: T;
+  dayOfWeek?: T;
+  startTime?: T;
+  endTime?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "training-schedules_select".
+ */
+export interface TrainingSchedulesSelect<T extends boolean = true> {
+  trainingGroupId?: T;
+  coachId?: T;
+  courtId?: T;
+  dayOfWeek?: T;
+  startTime?: T;
+  endTime?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sponsors_select".
+ */
+export interface SponsorsSelect<T extends boolean = true> {
+  name?: T;
+  picture?: T;
+  contactNumber?: T;
+  amounts?:
+    | T
+    | {
+        amount?: T;
+        date?: T;
+        id?: T;
+      };
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courtBookings_select".
+ */
+export interface CourtBookingsSelect<T extends boolean = true> {
+  user?: T;
+  court?: T;
+  bookings?:
+    | T
+    | {
+        bookingDate?: T;
+        startTime?: T;
+        endTime?: T;
+        id?: T;
+      };
+  totalPrice?: T;
+  paymentStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournaments_select".
+ */
+export interface TournamentsSelect<T extends boolean = true> {
+  name?: T;
+  tournamentType?: T;
+  registrationFee?: T;
+  description?: T;
+  registrationStartDate?: T;
+  registrationEndDate?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-registrations_select".
+ */
+export interface TournamentRegistrationsSelect<T extends boolean = true> {
+  tournamentId?: T;
+  userId?: T;
+  registrationDate?: T;
+  paymentStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tournament-teams_select".
+ */
+export interface TournamentTeamsSelect<T extends boolean = true> {
+  tournamentId?: T;
+  teams?:
+    | T
+    | {
+        teamName?: T;
+        playerOne?: T;
+        playerTwo?: T;
         id?: T;
       };
   updatedAt?: T;

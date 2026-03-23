@@ -1,14 +1,34 @@
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
+import { getMemberPackage } from '../Members'
 
-export const Staffs: CollectionConfig = {
-  slug: 'staffs',
+export const getStudentPackage = async (req: any) => {
+  // ✅ If already fetched, reuse
+  if (req.studentPackage) return req.studentPackage
+
+  const result = await req.payload.find({
+    collection: 'packages',
+    where: {
+      title: {
+        equals: 'Academy Students',
+      },
+    },
+    limit: 1,
+  })
+
+  req.studentPackage = result.docs?.[0] || null
+
+  return req.studentPackage
+}
+
+export const StudentPayments: CollectionConfig = {
+  slug: 'student-payments',
   labels: {
-    singular: '🐕 Staff',
-    plural: '🐕 Staffs',
+    singular: '🪅 Student Payment',
+    plural: '🪅 Student Payments',
   },
   admin: {
-    useAsTitle: 'name',
+    useAsTitle: 'student',
   },
   access: {
     read: () => true,
@@ -18,22 +38,32 @@ export const Staffs: CollectionConfig = {
     },
     update: ({ req: { user } }) => {
       if (!user) return false
-      return ['admin', 'manager'].includes(user.role)
+      if (user.role === 'admin' || user.role === 'manager') return true
+      return {
+        'user.id': { equals: user.id },
+      }
     },
-    delete: ({ req: { user } }) => {
-      if (!user) return false
-      return ['admin', 'manager'].includes(user.role)
-    },
+    delete: isAdmin,
   },
   fields: [
     {
       type: 'row',
+      access: {
+        update: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+        create: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+      },
       fields: [
         {
-          name: 'name',
-          type: 'text',
+          name: 'student',
+          type: 'relationship',
+          relationTo: 'students',
           required: true,
           unique: true,
+          hasMany: false,
         },
         {
           name: 'totalDue',
@@ -54,58 +84,37 @@ export const Staffs: CollectionConfig = {
       ],
     },
     {
-      name: 'profilePicture',
-      type: 'upload',
-      relationTo: 'media',
+      name: 'registrationFee',
+      type: 'number',
+      access: {
+        update: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+        create: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+      },
+      defaultValue: async ({ req }) => {
+        const pkg = await getStudentPackage(req)
+        return pkg?.registrationFee || 0
+      },
+      required: true,
     },
     {
-      type: 'row',
-      fields: [
-        {
-          name: 'contactNumber',
-          type: 'text',
-          required: true,
-        },
-        {
-          name: 'address',
-          type: 'text',
-        },
-      ],
-    },
-    {
-      type: 'row',
-      fields: [
-        {
-          name: 'joinDate',
-          type: 'date',
-          defaultValue: new Date().toISOString(),
-          required: true,
-        },
-        {
-          name: 'status',
-          type: 'select',
-          options: [
-            {
-              label: 'Active',
-              value: 'active',
-            },
-            {
-              label: 'Pending',
-              value: 'pending',
-            },
-            {
-              label: 'Inactive',
-              value: 'inactive',
-            },
-          ],
-          defaultValue: 'inactive',
-          required: true,
-        },
-      ],
-    },
-    {
-      name: 'salaries',
+      name: 'payments',
       type: 'array',
+      access: {
+        update: ({ req }) => {
+          return (
+            req.user?.role === 'admin' || req.user?.role === 'manager' || req.user?.role === 'coach'
+          )
+        },
+        create: ({ req }) => {
+          return (
+            req.user?.role === 'admin' || req.user?.role === 'manager' || req.user?.role === 'coach'
+          )
+        },
+      },
       fields: [
         {
           name: 'paymentMonth',
@@ -113,15 +122,22 @@ export const Staffs: CollectionConfig = {
           admin: {
             date: {
               displayFormat: 'MMMM yyyy',
+              pickerAppearance: 'monthOnly',
             },
           },
           defaultValue: () => new Date(),
         },
         {
-          name: 'salary',
+          name: 'amount',
           type: 'number',
           required: true,
-          defaultValue: 0,
+          admin: {
+            readOnly: true,
+          },
+          defaultValue: async ({ req }) => {
+            const pkg = await getMemberPackage(req)
+            return pkg?.price || 0
+          },
         },
         {
           name: 'paymentMethod',
@@ -154,7 +170,7 @@ export const Staffs: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data }) => {
-        if (data.salaries && Array.isArray(data.salaries)) {
+        if (data.payments && Array.isArray(data.payments)) {
           data.totalPaid = data.payments
             .filter((p: any) => p.status === 'paid')
             .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
