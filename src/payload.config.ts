@@ -31,6 +31,7 @@ import { TournamentRegistrations } from './collections/TournamentRegistrations'
 import { TournamentTeams } from './collections/TournamentTeams'
 import { TournamentMatches } from './collections/TournamentMatches'
 import { TournamentResults } from './collections/TournamentResults'
+import { BookingPayments } from './collections/BookingPayments'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -86,6 +87,7 @@ export default buildConfig({
     TrainingSchedules,
     Sponsors,
     CourtBookings,
+    BookingPayments,
     Tournaments,
     TournamentRegistrations,
     TournamentTeams,

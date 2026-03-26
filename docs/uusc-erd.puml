@@ -130,6 +130,14 @@ entity StudentPayments {
   *status: enum[Due, Paid]
 }
 
+entity BookingPayments {
+  *id: INT <<PK>>
+  --
+  *bookingId: INT <<FK>>
+  *totalAmount: number
+  *paymentStatus: enum[Paid, Unpaid]
+}
+
 ' =====================================================
 ' ACADEMY TRAINING
 ' =====================================================
@@ -191,9 +199,6 @@ entity CourtBookings {
   *bookingDate: date
   *startTime: datetime
   *endTime: datetime
-  durationHours: number
-  totalAmount: number
-  status: enum[Due, Paid]
 }
 
 ' =====================================================
@@ -347,6 +352,7 @@ Coaches ||--o| StudentProgress
 
 CourtBookings |o--|| Courts
 CourtBookings |o--|| Users
+BookingPayments |o--|| CourtBookings
 
 TournamentRegistrations |o--|| Users
 Tournaments ||--o| TournamentRegistrations

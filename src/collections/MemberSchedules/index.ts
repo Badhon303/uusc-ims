@@ -15,13 +15,20 @@ export const MemberSchedules: CollectionConfig = {
   },
   fields: [
     {
-      name: 'courtId',
+      name: 'shiftName',
+      type: 'text',
+      required: true,
+      unique: true,
+    },
+    {
+      name: 'courts',
       type: 'relationship',
       relationTo: 'courts',
       required: true,
+      hasMany: true,
     },
     {
-      name: 'dayOfWeek',
+      name: 'daysOfWeek',
       type: 'select',
       required: true,
       options: [
@@ -43,6 +50,50 @@ export const MemberSchedules: CollectionConfig = {
       name: 'endTime',
       type: 'date',
       required: true,
+    },
+    {
+      name: 'offDays',
+      type: 'array',
+      fields: [
+        {
+          name: 'type',
+          type: 'select',
+          options: [
+            { label: 'Single Day', value: 'single' },
+            { label: 'Range', value: 'range' },
+          ],
+          defaultValue: 'single',
+        },
+        {
+          name: 'date',
+          type: 'date',
+          admin: {
+            condition: (_, siblingData) => siblingData.type === 'single',
+            date: { pickerAppearance: 'dayOnly' },
+          },
+        },
+        {
+          name: 'from',
+          type: 'date',
+          admin: {
+            condition: (_, siblingData) => siblingData.type === 'range',
+            date: { pickerAppearance: 'dayOnly' },
+          },
+        },
+        {
+          name: 'to',
+          type: 'date',
+          admin: {
+            condition: (_, siblingData) => siblingData.type === 'range',
+            date: { pickerAppearance: 'dayOnly' },
+          },
+        },
+        {
+          name: 'reason',
+          type: 'textarea',
+          required: true,
+        },
+      ],
     },
   ],
 }

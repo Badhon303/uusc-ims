@@ -8,7 +8,7 @@ export const TrainingSchedules: CollectionConfig = {
     plural: '🐉 Training Schedules',
   },
   admin: {
-    useAsTitle: 'trainingGroupId',
+    useAsTitle: 'trainingGroup',
   },
   access: {
     read: () => true,
@@ -27,27 +27,29 @@ export const TrainingSchedules: CollectionConfig = {
   },
   fields: [
     {
-      name: 'trainingGroupId',
+      name: 'trainingGroup',
       type: 'relationship',
       relationTo: 'training-groups',
       required: true,
     },
     {
-      name: 'coachId',
+      name: 'coach',
       type: 'relationship',
       relationTo: 'coaches',
       required: true,
     },
     {
-      name: 'courtId',
+      name: 'courts',
       type: 'relationship',
       relationTo: 'courts',
       required: true,
+      hasMany: true,
     },
     {
-      name: 'dayOfWeek',
+      name: 'daysOfWeek',
       type: 'select',
       required: true,
+      hasMany: true,
       options: [
         { label: 'Saturday', value: 'saturday' },
         { label: 'Sunday', value: 'sunday' },
@@ -67,6 +69,59 @@ export const TrainingSchedules: CollectionConfig = {
       name: 'endTime',
       type: 'date',
       required: true,
+    },
+    {
+      name: 'offDays',
+      type: 'array',
+      fields: [
+        {
+          name: 'type',
+          type: 'select',
+          options: [
+            { label: 'Single Day', value: 'single' },
+            { label: 'Range', value: 'range' },
+          ],
+          defaultValue: 'single',
+        },
+        {
+          name: 'date',
+          type: 'date',
+          admin: {
+            condition: (_, siblingData) => siblingData.type === 'single',
+            date: { pickerAppearance: 'dayOnly' },
+          },
+        },
+        {
+          name: 'from',
+          type: 'date',
+          admin: {
+            condition: (_, siblingData) => siblingData.type === 'range',
+            date: { pickerAppearance: 'dayOnly' },
+          },
+        },
+        {
+          name: 'to',
+          type: 'date',
+          admin: {
+            condition: (_, siblingData) => siblingData.type === 'range',
+            date: { pickerAppearance: 'dayOnly' },
+          },
+        },
+        {
+          name: 'reason',
+          type: 'textarea',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'status',
+      type: 'select',
+      required: true,
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Inactive', value: 'inactive' },
+      ],
     },
   ],
 }

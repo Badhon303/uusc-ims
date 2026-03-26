@@ -85,7 +85,8 @@ export interface Config {
     'member-schedules': MemberSchedule;
     'training-schedules': TrainingSchedule;
     sponsors: Sponsor;
-    courtBookings: CourtBooking;
+    'court-bookings': CourtBooking;
+    'booking-payments': BookingPayment;
     tournaments: Tournament;
     'tournament-registrations': TournamentRegistration;
     'tournament-teams': TournamentTeam;
@@ -116,7 +117,8 @@ export interface Config {
     'member-schedules': MemberSchedulesSelect<false> | MemberSchedulesSelect<true>;
     'training-schedules': TrainingSchedulesSelect<false> | TrainingSchedulesSelect<true>;
     sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
-    courtBookings: CourtBookingsSelect<false> | CourtBookingsSelect<true>;
+    'court-bookings': CourtBookingsSelect<false> | CourtBookingsSelect<true>;
+    'booking-payments': BookingPaymentsSelect<false> | BookingPaymentsSelect<true>;
     tournaments: TournamentsSelect<false> | TournamentsSelect<true>;
     'tournament-registrations': TournamentRegistrationsSelect<false> | TournamentRegistrationsSelect<true>;
     'tournament-teams': TournamentTeamsSelect<false> | TournamentTeamsSelect<true>;
@@ -557,10 +559,21 @@ export interface Court {
  */
 export interface MemberSchedule {
   id: number;
-  courtId: number | Court;
-  dayOfWeek: 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+  shiftName: string;
+  courts: (number | Court)[];
+  daysOfWeek: 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
   startTime: string;
   endTime: string;
+  offDays?:
+    | {
+        type?: ('single' | 'range') | null;
+        date?: string | null;
+        from?: string | null;
+        to?: string | null;
+        reason: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -570,12 +583,23 @@ export interface MemberSchedule {
  */
 export interface TrainingSchedule {
   id: number;
-  trainingGroupId: number | TrainingGroup;
-  coachId: number | Coach;
-  courtId: number | Court;
-  dayOfWeek: 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+  trainingGroup: number | TrainingGroup;
+  coach: number | Coach;
+  courts: (number | Court)[];
+  daysOfWeek: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[];
   startTime: string;
   endTime: string;
+  offDays?:
+    | {
+        type?: ('single' | 'range') | null;
+        date?: string | null;
+        from?: string | null;
+        to?: string | null;
+        reason: string;
+        id?: string | null;
+      }[]
+    | null;
+  status: 'active' | 'inactive';
   updatedAt: string;
   createdAt: string;
 }
@@ -601,19 +625,31 @@ export interface Sponsor {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "courtBookings".
+ * via the `definition` "court-bookings".
  */
 export interface CourtBooking {
   id: number;
+  title?: string | null;
   user: number | User;
-  court: number | Court;
+  courts: (number | Court)[];
   bookings: {
     bookingDate: string;
     startTime: string;
     endTime: string;
     id?: string | null;
   }[];
-  totalPrice: number;
+  confirmed?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-payments".
+ */
+export interface BookingPayment {
+  id: number;
+  booking: number | CourtBooking;
+  totalAmount: number;
   paymentStatus: 'paid' | 'unpaid';
   updatedAt: string;
   createdAt: string;
@@ -804,8 +840,12 @@ export interface PayloadLockedDocument {
         value: number | Sponsor;
       } | null)
     | ({
-        relationTo: 'courtBookings';
+        relationTo: 'court-bookings';
         value: number | CourtBooking;
+      } | null)
+    | ({
+        relationTo: 'booking-payments';
+        value: number | BookingPayment;
       } | null)
     | ({
         relationTo: 'tournaments';
@@ -1226,10 +1266,21 @@ export interface CourtsSelect<T extends boolean = true> {
  * via the `definition` "member-schedules_select".
  */
 export interface MemberSchedulesSelect<T extends boolean = true> {
-  courtId?: T;
-  dayOfWeek?: T;
+  shiftName?: T;
+  courts?: T;
+  daysOfWeek?: T;
   startTime?: T;
   endTime?: T;
+  offDays?:
+    | T
+    | {
+        type?: T;
+        date?: T;
+        from?: T;
+        to?: T;
+        reason?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1238,12 +1289,23 @@ export interface MemberSchedulesSelect<T extends boolean = true> {
  * via the `definition` "training-schedules_select".
  */
 export interface TrainingSchedulesSelect<T extends boolean = true> {
-  trainingGroupId?: T;
-  coachId?: T;
-  courtId?: T;
-  dayOfWeek?: T;
+  trainingGroup?: T;
+  coach?: T;
+  courts?: T;
+  daysOfWeek?: T;
   startTime?: T;
   endTime?: T;
+  offDays?:
+    | T
+    | {
+        type?: T;
+        date?: T;
+        from?: T;
+        to?: T;
+        reason?: T;
+        id?: T;
+      };
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1268,11 +1330,12 @@ export interface SponsorsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "courtBookings_select".
+ * via the `definition` "court-bookings_select".
  */
 export interface CourtBookingsSelect<T extends boolean = true> {
+  title?: T;
   user?: T;
-  court?: T;
+  courts?: T;
   bookings?:
     | T
     | {
@@ -1281,7 +1344,17 @@ export interface CourtBookingsSelect<T extends boolean = true> {
         endTime?: T;
         id?: T;
       };
-  totalPrice?: T;
+  confirmed?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-payments_select".
+ */
+export interface BookingPaymentsSelect<T extends boolean = true> {
+  booking?: T;
+  totalAmount?: T;
   paymentStatus?: T;
   updatedAt?: T;
   createdAt?: T;

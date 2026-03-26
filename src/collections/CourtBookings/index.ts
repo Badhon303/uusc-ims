@@ -1,21 +1,65 @@
 import { CollectionConfig } from 'payload'
 
 export const CourtBookings: CollectionConfig = {
-  slug: 'courtBookings',
+  slug: 'court-bookings',
   labels: {
     singular: '🛒 Court Booking',
     plural: '🛒 Court Bookings',
   },
   admin: {
-    useAsTitle: 'user',
+    useAsTitle: 'title',
   },
   access: {
     read: () => true,
     create: () => true,
-    update: () => true,
-    delete: () => true,
+    update: ({ req: { user } }) => {
+      if (!user) return false
+      if (user.role === 'admin' || user.role === 'manager') return true
+      return {
+        'user.id': { equals: user.id },
+      }
+    },
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      if (user.role === 'admin' || user.role === 'manager') return true
+      return {
+        'user.id': { equals: user.id },
+      }
+    },
   },
   fields: [
+    {
+      name: 'title',
+      type: 'text',
+      admin: {
+        readOnly: true,
+      },
+      hooks: {
+        beforeChange: [
+          async ({ data, req }: any) => {
+            // 1. Get the booking dates
+            const dates =
+              data.bookings?.map((booking: any) => booking.bookingDate).join(', ') || 'No Date'
+
+            // 2. Fetch the user's name if a user is linked
+            let userName = 'Unknown User'
+            if (data.user) {
+              const userDoc = await req.payload.findByID({
+                collection: 'users',
+                id: typeof data.user === 'object' ? data.user.id : data.user,
+              })
+
+              if (userDoc) {
+                userName = userDoc.name || userDoc.email || 'User'
+              }
+            }
+
+            // 3. Combine them: "John Doe - 2024-10-24"
+            return `${userName} - ${dates}`
+          },
+        ],
+      },
+    },
     {
       name: 'user',
       type: 'relationship',
@@ -23,10 +67,11 @@ export const CourtBookings: CollectionConfig = {
       required: true,
     },
     {
-      name: 'court',
+      name: 'courts',
       type: 'relationship',
       relationTo: 'courts',
       required: true,
+      hasMany: true,
     },
     {
       name: 'bookings',
@@ -57,18 +102,17 @@ export const CourtBookings: CollectionConfig = {
       ],
     },
     {
-      name: 'totalPrice',
-      type: 'number',
-      required: true,
-    },
-    {
-      name: 'paymentStatus',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Paid', value: 'paid' },
-        { label: 'Unpaid', value: 'unpaid' },
-      ],
+      name: 'confirmed',
+      type: 'checkbox',
+      defaultValue: false,
+      access: {
+        update: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+        create: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+      },
     },
   ],
 }
