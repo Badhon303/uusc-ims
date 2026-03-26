@@ -9,6 +9,7 @@ export const TrainingSchedules: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'trainingGroup',
+    group: '📅 Schedule',
   },
   access: {
     read: () => true,

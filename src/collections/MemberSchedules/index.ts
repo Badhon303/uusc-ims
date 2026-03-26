@@ -7,6 +7,10 @@ export const MemberSchedules: CollectionConfig = {
     singular: '🦑 Member Schedule',
     plural: '🦑 Member Schedules',
   },
+  admin: {
+    useAsTitle: 'shiftName',
+    group: '📅 Schedule',
+  },
   access: {
     read: () => true,
     create: isAdmin,

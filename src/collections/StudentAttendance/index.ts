@@ -9,6 +9,7 @@ export const StudentAttendance: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'student',
+    group: '⛹️ Training',
   },
   access: {
     read: () => true,

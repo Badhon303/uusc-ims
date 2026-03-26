@@ -9,6 +9,7 @@ export const Staffs: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    group: '💼 Back Office',
   },
   access: {
     read: () => true,

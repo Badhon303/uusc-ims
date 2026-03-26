@@ -11,6 +11,7 @@ export const Users: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    group: '⚙️ Settings',
   },
   auth: {
     tokenExpiration: 604800, // 7 days

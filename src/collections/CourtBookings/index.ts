@@ -8,6 +8,7 @@ export const CourtBookings: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
+    group: '📅 Schedule',
   },
   access: {
     read: () => true,

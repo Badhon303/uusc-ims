@@ -18,9 +18,6 @@ const DashboardNavLink = () => {
           />
         </Link>
       </div>
-      <Link className="nav__link" id="nav-users" href="/admin">
-        <span className="nav__link-label">🚀 Dashboard</span>
-      </Link>
     </div>
   )
 }

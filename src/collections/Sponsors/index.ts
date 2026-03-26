@@ -9,6 +9,7 @@ export const Sponsors: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    group: '💳 Payments & Packages',
   },
   access: {
     read: () => true,

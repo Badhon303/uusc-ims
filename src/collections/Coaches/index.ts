@@ -9,6 +9,7 @@ export const Coaches: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'coachName',
+    group: '🥳 Profiles',
   },
   access: {
     read: () => true,

@@ -29,6 +29,7 @@ export const Students: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'studentName',
+    group: '🥳 Profiles',
   },
   access: {
     read: () => true,

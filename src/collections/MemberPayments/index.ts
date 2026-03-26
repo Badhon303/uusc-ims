@@ -28,6 +28,7 @@ export const MemberPayments: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'user',
+    group: '💳 Payments & Packages',
   },
   access: {
     read: () => true,

@@ -8,6 +8,7 @@ export const BookingPayments: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'booking',
+    group: '💳 Payments & Packages',
   },
   access: {
     read: () => true,

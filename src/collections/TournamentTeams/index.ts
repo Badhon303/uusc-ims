@@ -8,6 +8,7 @@ export const TournamentTeams: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'teamName',
+    group: '🏆 Tournament',
   },
   fields: [
     {

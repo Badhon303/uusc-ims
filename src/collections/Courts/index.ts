@@ -9,6 +9,7 @@ export const Courts: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    group: '⚙️ Settings',
   },
   access: {
     read: () => true,

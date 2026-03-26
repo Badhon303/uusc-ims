@@ -7,6 +7,10 @@ export const TournamentResults: CollectionConfig = {
     singular: '🏆 Tournament Result',
     plural: '🏆 Tournament Results',
   },
+  admin: {
+    useAsTitle: 'tournament',
+    group: '🏆 Tournament',
+  },
   access: {
     read: () => true,
     create: isAdmin,
@@ -15,7 +19,7 @@ export const TournamentResults: CollectionConfig = {
   },
   fields: [
     {
-      name: 'tournamentId',
+      name: 'tournament',
       type: 'relationship',
       relationTo: 'tournaments',
       required: true,

@@ -6,6 +6,10 @@ export const TournamentRegistrations: CollectionConfig = {
     singular: '🪅 Tournament Registration',
     plural: '🪅 Tournament Registrations',
   },
+  admin: {
+    useAsTitle: 'tournament',
+    group: '🏆 Tournament',
+  },
   access: {
     read: () => true,
     create: () => true,
@@ -14,13 +18,13 @@ export const TournamentRegistrations: CollectionConfig = {
   },
   fields: [
     {
-      name: 'tournamentId',
+      name: 'tournament',
       type: 'relationship',
       relationTo: 'tournaments',
       required: true,
     },
     {
-      name: 'userId',
+      name: 'user',
       type: 'relationship',
       relationTo: 'users',
       required: true,

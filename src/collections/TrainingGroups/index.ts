@@ -9,6 +9,7 @@ export const TrainingGroups: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    group: '⛹️ Training',
   },
   access: {
     read: () => true,

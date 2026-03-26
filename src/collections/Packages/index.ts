@@ -9,6 +9,7 @@ export const Packages: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
+    group: '💳 Payments & Packages',
   },
   access: {
     read: () => true,

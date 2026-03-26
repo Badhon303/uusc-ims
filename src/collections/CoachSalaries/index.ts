@@ -9,6 +9,7 @@ export const CoachSalaries: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'coach',
+    group: '💼 Back Office',
   },
   access: {
     read: () => true,

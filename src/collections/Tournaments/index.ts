@@ -4,11 +4,12 @@ import { CollectionConfig } from 'payload'
 export const Tournaments: CollectionConfig = {
   slug: 'tournaments',
   labels: {
-    singular: '🏆 Tournament',
-    plural: '🏆 Tournaments',
+    singular: '🐲 Tournament',
+    plural: '🐲 Tournaments',
   },
   admin: {
     useAsTitle: 'name',
+    group: '🏆 Tournament',
   },
   access: {
     read: () => true,

@@ -29,6 +29,7 @@ export const StudentPayments: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'student',
+    group: '💳 Payments & Packages',
   },
   access: {
     read: () => true,

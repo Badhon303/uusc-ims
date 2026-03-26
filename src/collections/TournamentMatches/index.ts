@@ -7,6 +7,10 @@ export const TournamentMatches: CollectionConfig = {
     singular: '🫎 Tournament Match',
     plural: '🫎 Tournament Matches',
   },
+  admin: {
+    useAsTitle: 'tournament',
+    group: '🏆 Tournament',
+  },
   access: {
     read: () => true,
     create: isAdmin,

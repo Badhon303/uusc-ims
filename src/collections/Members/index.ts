@@ -28,6 +28,7 @@ export const Members: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'memberName',
+    group: '🥳 Profiles',
   },
   access: {
     read: () => true,
