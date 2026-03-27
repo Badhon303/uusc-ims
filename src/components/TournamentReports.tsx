@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { usePayloadAPI, Gutter, Select } from '@payloadcms/ui'
 import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 
@@ -9,22 +9,36 @@ type Option = {
   value: string
 }
 
+const PAGE_SIZE = 10
+
 const TournamentReports: React.FC = () => {
   const [selectedTournament, setSelectedTournament] = useState<Option | null>(null)
   const [search, setSearch] = useState('')
-
-  // ✅ Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState(search)
+  const [page, setPage] = useState(1)
+  const [accumulatedOptions, setAccumulatedOptions] = useState<Option[]>([])
+  const [hasMore, setHasMore] = useState(true)
+  const prevSearch = useRef(debouncedSearch)
 
+  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search)
-    }, 400) // debounce delay
-
+    }, 400)
     return () => clearTimeout(timer)
   }, [search])
 
-  // ✅ Build stats API
+  // Reset pagination when search changes
+  useEffect(() => {
+    if (debouncedSearch !== prevSearch.current) {
+      prevSearch.current = debouncedSearch
+      setPage(1)
+      setAccumulatedOptions([])
+      setHasMore(true)
+    }
+  }, [debouncedSearch])
+
+  // Build stats API URL
   const queryParams = new URLSearchParams()
   if (selectedTournament?.value) {
     queryParams.append('tournamentId', selectedTournament.value)
@@ -34,21 +48,42 @@ const TournamentReports: React.FC = () => {
     queryParams.toString() ? `?${queryParams.toString()}` : ''
   }`
 
-  // ✅ Build tournament search API
-  const tournamentUrl = `/api/tournaments?limit=10${
-    debouncedSearch ? `&where[name][like]=${encodeURIComponent(debouncedSearch)}` : ''
-  }`
+  // Build paginated tournament search URL
+  const tournamentUrl =
+    `/api/tournaments?limit=${PAGE_SIZE}&page=${page}` +
+    (debouncedSearch ? `&where[name][like]=${encodeURIComponent(debouncedSearch)}` : '')
 
-  // ✅ APIs
-  const [{ data: stats, isLoading }] = usePayloadAPI(statsUrl)
-  const [{ data: tournamentData }] = usePayloadAPI(tournamentUrl)
+  // APIs
+  const [{ data: stats, isLoading: statsLoading }] = usePayloadAPI(statsUrl)
+  const [{ data: tournamentData, isLoading: tournamentsLoading }] = usePayloadAPI(tournamentUrl)
 
-  // ✅ Map options
-  const options: Option[] =
-    tournamentData?.docs?.map((t: any) => ({
+  // Accumulate options as pages load
+  useEffect(() => {
+    if (!tournamentData?.docs) return
+
+    const newOptions: Option[] = tournamentData.docs.map((t: any) => ({
       label: t.name,
       value: t.id,
-    })) || []
+    }))
+
+    setAccumulatedOptions((prev) => {
+      // Deduplicate by value
+      const existingIds = new Set(prev.map((o) => o.value))
+      const unique = newOptions.filter((o) => !existingIds.has(o.value))
+      return page === 1 ? newOptions : [...prev, ...unique]
+    })
+
+    // Check if there are more pages
+    const totalPages = tournamentData.totalPages ?? 1
+    setHasMore(page < totalPages)
+  }, [tournamentData])
+
+  // Load next page when user scrolls to bottom of dropdown
+  const handleMenuScrollToBottom = () => {
+    if (!tournamentsLoading && hasMore) {
+      setPage((prev) => prev + 1)
+    }
+  }
 
   const statsData = [
     { label: 'Total Paid', value: Number(stats?.totalPaid || 0) },
@@ -63,28 +98,25 @@ const TournamentReports: React.FC = () => {
 
         <div style={{ width: 260 }}>
           <Select
-            // Ensure we pass null if nothing is selected to help the component reset
             value={selectedTournament ?? undefined}
             onChange={(option) => {
-              // Check for null/empty to handle the "Clear" (cross) button
               if (!option) {
                 setSelectedTournament(null)
                 setSearch('')
                 return
               }
-
               if (Array.isArray(option)) return
-
-              // Cast the valid option to your state type
               setSelectedTournament(option as unknown as Option)
             }}
-            options={options}
+            options={accumulatedOptions}
             isClearable
             isSearchable
+            isLoading={tournamentsLoading}
             placeholder="Search tournament..."
             onInputChange={(inputValue) => {
               setSearch(inputValue)
             }}
+            onMenuScrollToBottom={handleMenuScrollToBottom}
           />
         </div>
       </div>
@@ -95,7 +127,7 @@ const TournamentReports: React.FC = () => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '16px',
           margin: '20px 0',
-          opacity: isLoading ? 0.6 : 1,
+          opacity: statsLoading ? 0.6 : 1,
           transition: 'opacity 0.2s ease-in-out',
           position: 'relative',
         }}
@@ -107,7 +139,7 @@ const TournamentReports: React.FC = () => {
           </div>
         ))}
 
-        {isLoading && (
+        {statsLoading && (
           <div
             style={{
               position: 'absolute',
