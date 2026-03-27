@@ -9,7 +9,7 @@ export const Packages: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: '💳 Payments & Packages',
+    group: '⚙️ Settings',
   },
   access: {
     read: () => true,

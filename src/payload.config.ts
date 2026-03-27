@@ -75,6 +75,7 @@ export default buildConfig({
     Users,
     Media,
     Courts,
+    Packages,
     // Profiles
     Students,
     Members,
@@ -84,7 +85,6 @@ export default buildConfig({
     Managers,
     Staffs,
     // Payments & Packages
-    Packages,
     MemberPayments,
     StudentPayments,
     BookingPayments,

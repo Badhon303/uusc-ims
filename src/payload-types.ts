@@ -70,13 +70,13 @@ export interface Config {
     users: User;
     media: Media;
     courts: Court;
+    packages: Package;
     students: Student;
     members: Member;
     coaches: Coach;
     'coach-salaries': CoachSalary;
     managers: Manager;
     staffs: Staff;
-    packages: Package;
     'member-payments': MemberPayment;
     'student-payments': StudentPayment;
     'booking-payments': BookingPayment;
@@ -102,13 +102,13 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     courts: CourtsSelect<false> | CourtsSelect<true>;
+    packages: PackagesSelect<false> | PackagesSelect<true>;
     students: StudentsSelect<false> | StudentsSelect<true>;
     members: MembersSelect<false> | MembersSelect<true>;
     coaches: CoachesSelect<false> | CoachesSelect<true>;
     'coach-salaries': CoachSalariesSelect<false> | CoachSalariesSelect<true>;
     managers: ManagersSelect<false> | ManagersSelect<true>;
     staffs: StaffsSelect<false> | StaffsSelect<true>;
-    packages: PackagesSelect<false> | PackagesSelect<true>;
     'member-payments': MemberPaymentsSelect<false> | MemberPaymentsSelect<true>;
     'student-payments': StudentPaymentsSelect<false> | StudentPaymentsSelect<true>;
     'booking-payments': BookingPaymentsSelect<false> | BookingPaymentsSelect<true>;
@@ -238,6 +238,24 @@ export interface Court {
   name: string;
   peakHourPrice: number;
   normalHourPrice: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "packages".
+ */
+export interface Package {
+  id: number;
+  title: string;
+  price: number;
+  registrationFee: number;
+  features?:
+    | {
+        feature: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -414,24 +432,6 @@ export interface Staff {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "packages".
- */
-export interface Package {
-  id: number;
-  title: string;
-  price: number;
-  registrationFee: number;
-  features?:
-    | {
-        feature: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "member-payments".
  */
 export interface MemberPayment {
@@ -440,6 +440,7 @@ export interface MemberPayment {
   totalDue?: number | null;
   totalPaid?: number | null;
   registrationFee: number;
+  registrationDate: string;
   payments?:
     | {
         paymentMonth?: string | null;
@@ -463,6 +464,7 @@ export interface StudentPayment {
   totalDue?: number | null;
   totalPaid?: number | null;
   registrationFee: number;
+  registrationDate: string;
   payments?:
     | {
         paymentMonth?: string | null;
@@ -780,6 +782,10 @@ export interface PayloadLockedDocument {
         value: number | Court;
       } | null)
     | ({
+        relationTo: 'packages';
+        value: number | Package;
+      } | null)
+    | ({
         relationTo: 'students';
         value: number | Student;
       } | null)
@@ -802,10 +808,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'staffs';
         value: number | Staff;
-      } | null)
-    | ({
-        relationTo: 'packages';
-        value: number | Package;
       } | null)
     | ({
         relationTo: 'member-payments';
@@ -990,6 +992,23 @@ export interface CourtsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "packages_select".
+ */
+export interface PackagesSelect<T extends boolean = true> {
+  title?: T;
+  price?: T;
+  registrationFee?: T;
+  features?:
+    | T
+    | {
+        feature?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "students_select".
  */
 export interface StudentsSelect<T extends boolean = true> {
@@ -1141,23 +1160,6 @@ export interface StaffsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "packages_select".
- */
-export interface PackagesSelect<T extends boolean = true> {
-  title?: T;
-  price?: T;
-  registrationFee?: T;
-  features?:
-    | T
-    | {
-        feature?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "member-payments_select".
  */
 export interface MemberPaymentsSelect<T extends boolean = true> {
@@ -1165,6 +1167,7 @@ export interface MemberPaymentsSelect<T extends boolean = true> {
   totalDue?: T;
   totalPaid?: T;
   registrationFee?: T;
+  registrationDate?: T;
   payments?:
     | T
     | {
@@ -1187,6 +1190,7 @@ export interface StudentPaymentsSelect<T extends boolean = true> {
   totalDue?: T;
   totalPaid?: T;
   registrationFee?: T;
+  registrationDate?: T;
   payments?:
     | T
     | {

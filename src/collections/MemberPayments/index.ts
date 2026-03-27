@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
 
@@ -29,6 +30,9 @@ export const MemberPayments: CollectionConfig = {
   admin: {
     useAsTitle: 'user',
     group: '💳 Payments & Packages',
+    components: {
+      beforeList: ['@/components/MemberReports'], // This places the cards above the list
+    },
   },
   access: {
     read: () => true,
@@ -84,8 +88,7 @@ export const MemberPayments: CollectionConfig = {
       ],
     },
     {
-      name: 'registrationFee',
-      type: 'number',
+      type: 'row',
       access: {
         update: ({ req }) => {
           return req.user?.role === 'admin' || req.user?.role === 'manager'
@@ -94,11 +97,23 @@ export const MemberPayments: CollectionConfig = {
           return req.user?.role === 'admin' || req.user?.role === 'manager'
         },
       },
-      defaultValue: async ({ req }) => {
-        const pkg = await getMemberPackage(req)
-        return pkg?.registrationFee || 0
-      },
-      required: true,
+      fields: [
+        {
+          name: 'registrationFee',
+          type: 'number',
+          defaultValue: async ({ req }) => {
+            const pkg = await getMemberPackage(req)
+            return pkg?.registrationFee || 0
+          },
+          required: true,
+        },
+        {
+          name: 'registrationDate',
+          type: 'date',
+          required: true,
+          defaultValue: () => new Date(),
+        },
+      ],
     },
     {
       name: 'payments',
@@ -184,4 +199,68 @@ export const MemberPayments: CollectionConfig = {
       },
     ],
   },
+  endpoints: [
+    {
+      path: '/income-from-members',
+      method: 'get',
+      handler: async (req: any) => {
+        try {
+          const { month, year } = req.query
+          let start: Date | null = null
+          let end: Date | null = null
+
+          if (month && year) {
+            start = new Date(Number(year), Number(month) - 1, 1)
+            end = new Date(Number(year), Number(month), 0, 23, 59, 59)
+          }
+
+          const result = await req.payload.db.drizzle.execute(sql`
+                    SELECT 
+                      -- 1. Sum Registration Fees (Using a subquery to avoid duplicates from joins)
+                      (
+                        SELECT COALESCE(SUM(registration_fee), 0)
+                        FROM member_payments
+                        WHERE ${start ? sql`registration_date >= ${start} AND registration_date <= ${end}` : sql`TRUE`}
+              ) as "memberRegistrationFee",
+
+              -- 2. Sum Subscription Fees (Paid)
+              COALESCE(SUM(
+                CASE 
+                  WHEN p.status = 'paid' 
+                  AND ${start ? sql`p.payment_month >= ${start} AND p.payment_month <= ${end}` : sql`TRUE`}
+                  THEN p.amount ELSE 0 
+                END
+              ), 0) as "memberSubscriptionFee",
+
+              -- 3. Sum Total Due (Unpaid Subscriptions)
+              COALESCE(SUM(
+                CASE 
+                  WHEN p.status = 'unpaid' 
+                  AND ${start ? sql`p.payment_month >= ${start} AND p.payment_month <= ${end}` : sql`TRUE`}
+                  THEN p.amount ELSE 0 
+                END
+              ), 0) as "totalSubscriptionDue"
+
+            FROM member_payments_payments p
+          `)
+
+          const data = result.rows?.[0] || {}
+
+          const memberRegistrationFee = Number(data.memberRegistrationFee || 0)
+          const memberSubscriptionFee = Number(data.memberSubscriptionFee || 0)
+          const totalSubscriptionDue = Number(data.totalSubscriptionDue || 0)
+
+          return Response.json({
+            memberRegistrationFee,
+            memberSubscriptionFee,
+            totalIncome: memberRegistrationFee + memberSubscriptionFee,
+            totalSubscriptionDue, // Added this field
+          })
+        } catch (err) {
+          req.payload.logger.error(err)
+          return Response.json({ error: 'Failed to fetch income stats' }, { status: 500 })
+        }
+      },
+    },
+  ],
 }
