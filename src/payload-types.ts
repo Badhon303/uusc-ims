@@ -81,6 +81,7 @@ export interface Config {
     'student-payments': StudentPayment;
     'booking-payments': BookingPayment;
     sponsors: Sponsor;
+    'other-incomes': OtherIncome;
     'training-groups': TrainingGroup;
     'student-attendance': StudentAttendance;
     'student-progress': StudentProgress;
@@ -113,6 +114,7 @@ export interface Config {
     'student-payments': StudentPaymentsSelect<false> | StudentPaymentsSelect<true>;
     'booking-payments': BookingPaymentsSelect<false> | BookingPaymentsSelect<true>;
     sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
+    'other-incomes': OtherIncomesSelect<false> | OtherIncomesSelect<true>;
     'training-groups': TrainingGroupsSelect<false> | TrainingGroupsSelect<true>;
     'student-attendance': StudentAttendanceSelect<false> | StudentAttendanceSelect<true>;
     'student-progress': StudentProgressSelect<false> | StudentProgressSelect<true>;
@@ -517,7 +519,7 @@ export interface Sponsor {
   id: number;
   name: string;
   picture?: (number | null) | Media;
-  contactNumber?: string | null;
+  contactNumber: string;
   amounts?:
     | {
         amount: number;
@@ -525,7 +527,20 @@ export interface Sponsor {
         id?: string | null;
       }[]
     | null;
-  description: string;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "other-incomes".
+ */
+export interface OtherIncome {
+  id: number;
+  title: string;
+  amount: number;
+  date: string;
+  description?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -824,6 +839,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'sponsors';
         value: number | Sponsor;
+      } | null)
+    | ({
+        relationTo: 'other-incomes';
+        value: number | OtherIncome;
       } | null)
     | ({
         relationTo: 'training-groups';
@@ -1230,6 +1249,18 @@ export interface SponsorsSelect<T extends boolean = true> {
         date?: T;
         id?: T;
       };
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "other-incomes_select".
+ */
+export interface OtherIncomesSelect<T extends boolean = true> {
+  title?: T;
+  amount?: T;
+  date?: T;
   description?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -32,6 +32,7 @@ import { TournamentTeams } from './collections/TournamentTeams'
 import { TournamentMatches } from './collections/TournamentMatches'
 import { TournamentResults } from './collections/TournamentResults'
 import { BookingPayments } from './collections/BookingPayments'
+import { OtherIncomes } from './collections/OtherIncomes'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -70,7 +71,6 @@ export default buildConfig({
   collections: [
     // FInance
     // Expenditure,
-    // Income,
     // Settings
     Users,
     Media,
@@ -89,6 +89,7 @@ export default buildConfig({
     StudentPayments,
     BookingPayments,
     Sponsors,
+    OtherIncomes,
     // Training
     TrainingGroups,
     StudentAttendance,
