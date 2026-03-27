@@ -69,6 +69,7 @@ export const POST = async (request: Request) => {
         address,
       },
       draft: false, // Ensure the user is created immediately
+      overrideAccess: true,
     })
 
     // 4. Log the user in immediately after successful registration
