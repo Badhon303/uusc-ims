@@ -6,11 +6,12 @@ import path from 'path'
 export const Users: CollectionConfig = {
   slug: 'users',
   labels: {
-    singular: '👤 User',
-    plural: '👤 Users',
+    singular: '🐻‍❄️ User',
+    plural: '🐻‍❄️ Users',
   },
   admin: {
-    useAsTitle: 'email',
+    useAsTitle: 'name',
+    group: '⚙️ Settings',
   },
   auth: {
     tokenExpiration: 604800, // 7 days
@@ -104,8 +105,8 @@ export const Users: CollectionConfig = {
           value: 'admin',
         },
         {
-          label: 'Staff',
-          value: 'staff',
+          label: 'Manager',
+          value: 'manager',
         },
         {
           label: 'Coach',

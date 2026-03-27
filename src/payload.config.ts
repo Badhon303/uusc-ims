@@ -1,5 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -8,7 +9,29 @@ import sharp from 'sharp'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { allowedOrigins } from './utils/cors/corsHandler'
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { Packages } from './collections/Packages'
+import { Members } from './collections/Members'
+import { Managers } from './collections/Managers'
+import { Staffs } from './collections/Staffs'
+import { Students } from './collections/Students'
+import { Coaches } from './collections/Coaches'
+import { MemberPayments } from './collections/MemberPayments'
+import { StudentPayments } from './collections/StudentPayments'
+import { StudentAttendance } from './collections/StudentAttendance'
+import { StudentProgress } from './collections/StudentProgress'
+import { CoachSalaries } from './collections/CoachSalaries'
+import { TrainingGroups } from './collections/TrainingGroups'
+import { Courts } from './collections/Courts'
+import { MemberSchedules } from './collections/MemberSchedules'
+import { TrainingSchedules } from './collections/TrainingSchedules'
+import { Sponsors } from './collections/Sponsors'
+import { CourtBookings } from './collections/CourtBookings'
+import { Tournaments } from './collections/Tournaments'
+import { TournamentRegistrations } from './collections/TournamentRegistrations'
+import { TournamentTeams } from './collections/TournamentTeams'
+import { TournamentMatches } from './collections/TournamentMatches'
+import { TournamentResults } from './collections/TournamentResults'
+import { BookingPayments } from './collections/BookingPayments'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -44,7 +67,43 @@ export default buildConfig({
       titleSuffix: 'UUSC - Admin Panel',
     },
   },
-  collections: [Users, Media],
+  collections: [
+    // FInance
+    // Expenditure,
+    // Income,
+    // Settings
+    Users,
+    Media,
+    Courts,
+    Packages,
+    // Profiles
+    Students,
+    Members,
+    Coaches,
+    // BackOffice
+    CoachSalaries,
+    Managers,
+    Staffs,
+    // Payments & Packages
+    MemberPayments,
+    StudentPayments,
+    BookingPayments,
+    Sponsors,
+    // Training
+    TrainingGroups,
+    StudentAttendance,
+    StudentProgress,
+    // Tournament
+    Tournaments,
+    TournamentRegistrations,
+    TournamentTeams,
+    TournamentMatches,
+    TournamentResults,
+    // Schedule
+    TrainingSchedules,
+    MemberSchedules,
+    CourtBookings,
+  ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

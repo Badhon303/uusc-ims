@@ -14,12 +14,10 @@ const DashboardNavLink = () => {
             width={90}
             height={90}
             style={{ paddingBottom: '20px' }}
+            unoptimized
           />
         </Link>
       </div>
-      <Link className="nav__link" id="nav-users" href="/admin">
-        <span className="nav__link-label">🚀 Dashboard</span>
-      </Link>
     </div>
   )
 }

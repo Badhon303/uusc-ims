@@ -25,6 +25,7 @@
     "@payloadcms/ui": "3.79.1",
     "cross-env": "^7.0.3",
     "dotenv": "16.4.7",
+    "drizzle-orm": "^0.45.1",
     "graphql": "^16.8.1",
     "next": "15.4.11",
     "payload": "3.79.1",
