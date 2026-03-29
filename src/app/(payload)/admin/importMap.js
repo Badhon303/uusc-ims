@@ -21,6 +21,9 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { default as default_571224e53c09747f14c35a9c50161d9d } from '@/components/CoachSalaryReports'
+import { default as default_a17de7261303d9af7e6a10a18592decf } from '@/components/ManagerSalaryReports'
+import { default as default_0f94bd738273a2a745741b7adaef7963 } from '@/components/StaffSalaryReports'
 import { default as default_c3f529ca43e723bb964e223ff10ec3d6 } from '@/components/MemberReports'
 import { default as default_cb4098df708ead0da690ce9826a9705c } from '@/components/StudentReports'
 import { default as default_5feee5f57460135a79f89c3ba65005b5 } from '@/components/BookingReports'
@@ -31,6 +34,7 @@ import { default as default_cd59f2d5ea92c0c577f907bfdaed3186 } from '../../../co
 import { Icon as Icon_9c1a3ff8a9adb7b1e4b7a5cd42725bdb } from '../../../graphics/Icon/index.tsx'
 import { Logo as Logo_217937c36742cdefe571d11857c968fa } from '../../../graphics/Logo/index.tsx'
 import { default as default_94ac2314658659db0741e92a966c23c3 } from '../../../components/PoweredBy'
+import { default as default_7963fbdea08a7dee33b6566ad1c40369 } from '../../../components/DashboardIncomeReports'
 import { default as default_3418f551bbf9d54ab2c2875f2777a0c2 } from '../../../components/DashboardNavLink'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -58,6 +62,9 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/components/CoachSalaryReports#default": default_571224e53c09747f14c35a9c50161d9d,
+  "@/components/ManagerSalaryReports#default": default_a17de7261303d9af7e6a10a18592decf,
+  "@/components/StaffSalaryReports#default": default_0f94bd738273a2a745741b7adaef7963,
   "@/components/MemberReports#default": default_c3f529ca43e723bb964e223ff10ec3d6,
   "@/components/StudentReports#default": default_cb4098df708ead0da690ce9826a9705c,
   "@/components/BookingReports#default": default_5feee5f57460135a79f89c3ba65005b5,
@@ -68,6 +75,7 @@ export const importMap = {
   "/graphics/Icon/index.tsx#Icon": Icon_9c1a3ff8a9adb7b1e4b7a5cd42725bdb,
   "/graphics/Logo/index.tsx#Logo": Logo_217937c36742cdefe571d11857c968fa,
   "./components/PoweredBy#default": default_94ac2314658659db0741e92a966c23c3,
+  "./components/DashboardIncomeReports#default": default_7963fbdea08a7dee33b6566ad1c40369,
   "./components/DashboardNavLink#default": default_3418f551bbf9d54ab2c2875f2777a0c2,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

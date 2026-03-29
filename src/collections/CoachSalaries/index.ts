@@ -1,4 +1,5 @@
 import { isAdmin } from '@/utils/access/isAdmin'
+import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
 
 export const CoachSalaries: CollectionConfig = {
@@ -10,6 +11,9 @@ export const CoachSalaries: CollectionConfig = {
   admin: {
     useAsTitle: 'coach',
     group: '💼 Back Office',
+    components: {
+      beforeList: ['@/components/CoachSalaryReports'],
+    },
   },
   access: {
     read: () => true,
@@ -138,5 +142,64 @@ export const CoachSalaries: CollectionConfig = {
         return doc
       },
     ],
+    beforeChange: [
+      ({ data }) => {
+        if (data.salaries && Array.isArray(data.salaries)) {
+          data.totalPaid = data.salaries
+            .filter((p: any) => p.status === 'paid')
+            .reduce((sum: number, p: any) => sum + (Number(p.salary) || 0), 0)
+
+          data.totalDue = data.salaries
+            .filter((p: any) => p.status === 'unpaid')
+            .reduce((sum: number, p: any) => sum + (Number(p.salary) || 0), 0)
+
+          data.salaries.sort(
+            (a: any, b: any) =>
+              new Date(b.paymentMonth).getTime() - new Date(a.paymentMonth).getTime(),
+          )
+        }
+        return data
+      },
+    ],
   },
+  endpoints: [
+    {
+      path: '/expense-for-coach-salaries',
+      method: 'get',
+      handler: async (req: any) => {
+        try {
+          const { month, year } = req.query
+
+          let start: Date | null = null
+          let end: Date | null = null
+
+          if (month && year) {
+            start = new Date(Number(year), Number(month) - 1, 1)
+            end = new Date(Number(year), Number(month), 0, 23, 59, 59)
+          }
+
+          const result = await req.payload.db.drizzle.execute(sql`
+              SELECT
+                COALESCE(SUM(CASE WHEN s.status = 'paid' THEN s.salary ELSE 0 END), 0) AS "coachPaidSalary",
+                COUNT(s.id) AS "totalCoachSalaryCount",
+                COALESCE(SUM(CASE WHEN s.status = 'unpaid' THEN s.salary ELSE 0 END), 0) AS "coachDueSalary"
+              FROM coach_salaries_salaries s
+              WHERE 1=1
+              ${start && end ? sql`AND s.payment_month >= ${start} AND s.payment_month <= ${end}` : sql``}
+            `)
+
+          const data = result.rows?.[0] || {}
+          return Response.json({
+            coachPaidSalary: Number(data.coachPaidSalary || 0),
+            totalCoachSalaryCount: Number(data.totalCoachSalaryCount || 0),
+            coachDueSalary: Number(data.coachDueSalary || 0),
+            filter: month && year ? { month, year } : 'all',
+          })
+        } catch (err) {
+          req.payload.logger.error(err)
+          return Response.json({ error: 'Failed to fetch coach salary stats' }, { status: 500 })
+        }
+      },
+    },
+  ],
 }

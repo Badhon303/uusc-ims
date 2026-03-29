@@ -1,15 +1,19 @@
 import { isAdmin } from '@/utils/access/isAdmin'
+import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
 
 export const Managers: CollectionConfig = {
   slug: 'managers',
   labels: {
-    singular: '🐷 Manager',
-    plural: '🐷 Managers',
+    singular: '🦒 Manager',
+    plural: '🦒 Managers',
   },
   admin: {
     useAsTitle: 'user',
     group: '💼 Back Office',
+    components: {
+      beforeList: ['@/components/ManagerSalaryReports'],
+    },
   },
   access: {
     read: () => true,
@@ -135,15 +139,15 @@ export const Managers: CollectionConfig = {
     beforeChange: [
       ({ data }) => {
         if (data.salaries && Array.isArray(data.salaries)) {
-          data.totalPaid = data.payments
+          data.totalPaid = data.salaries
             .filter((p: any) => p.status === 'paid')
-            .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
+            .reduce((sum: number, p: any) => sum + (Number(p.salary) || 0), 0)
 
-          data.totalDue = data.payments
+          data.totalDue = data.salaries
             .filter((p: any) => p.status === 'unpaid')
-            .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
+            .reduce((sum: number, p: any) => sum + (Number(p.salary) || 0), 0)
 
-          data.payments.sort(
+          data.salaries.sort(
             (a: any, b: any) =>
               new Date(b.paymentMonth).getTime() - new Date(a.paymentMonth).getTime(),
           )
@@ -152,4 +156,44 @@ export const Managers: CollectionConfig = {
       },
     ],
   },
+  endpoints: [
+    {
+      path: '/expense-for-manager-salaries',
+      method: 'get',
+      handler: async (req: any) => {
+        try {
+          const { month, year } = req.query
+
+          let start: Date | null = null
+          let end: Date | null = null
+
+          if (month && year) {
+            start = new Date(Number(year), Number(month) - 1, 1)
+            end = new Date(Number(year), Number(month), 0, 23, 59, 59)
+          }
+
+          const result = await req.payload.db.drizzle.execute(sql`
+              SELECT
+                COALESCE(SUM(CASE WHEN s.status = 'paid' THEN s.salary ELSE 0 END), 0) AS "managerPaidSalary",
+                COUNT(s.id) AS "totalManagerSalaryCount",
+                COALESCE(SUM(CASE WHEN s.status = 'unpaid' THEN s.salary ELSE 0 END), 0) AS "managerDueSalary"
+              FROM managers_salaries s  
+              WHERE 1=1
+              ${start && end ? sql`AND s.payment_month >= ${start} AND s.payment_month <= ${end}` : sql``}
+            `)
+
+          const data = result.rows?.[0] || {}
+          return Response.json({
+            managerPaidSalary: Number(data.managerPaidSalary || 0),
+            totalManagerSalaryCount: Number(data.totalManagerSalaryCount || 0),
+            managerDueSalary: Number(data.managerDueSalary || 0),
+            filter: month && year ? { month, year } : 'all',
+          })
+        } catch (err) {
+          req.payload.logger.error(err)
+          return Response.json({ error: 'Failed to fetch manager salary stats' }, { status: 500 })
+        }
+      },
+    },
+  ],
 }
