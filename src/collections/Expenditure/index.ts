@@ -16,7 +16,10 @@ export const Expenditures: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager'].includes(user.role)
+    },
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager'].includes(user.role)
@@ -69,6 +72,10 @@ export const Expenditures: CollectionConfig = {
       path: '/expenditures-stats',
       method: 'get',
       handler: async (req: any) => {
+        // 1. Access Control
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
 
@@ -113,6 +120,9 @@ export const Expenditures: CollectionConfig = {
       path: '/overall-expenditures-stats',
       method: 'get',
       handler: async (req: any) => {
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
           let start: Date | null = null

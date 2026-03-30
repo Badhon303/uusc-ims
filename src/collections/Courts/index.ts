@@ -14,10 +14,7 @@ export const Courts: CollectionConfig = {
   access: {
     read: () => true,
     create: isAdmin,
-    update: ({ req: { user } }) => {
-      if (!user) return false
-      return ['admin', 'coach'].includes(user.role)
-    },
+    update: isAdmin,
     delete: isAdmin,
   },
   fields: [

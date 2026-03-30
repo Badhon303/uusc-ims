@@ -60,6 +60,10 @@ export const BookingPayments: CollectionConfig = {
       path: '/income-from-bookings',
       method: 'get',
       handler: async (req: any) => {
+        // 1. Access Control
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
 

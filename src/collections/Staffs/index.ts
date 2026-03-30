@@ -16,7 +16,10 @@ export const Staffs: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager'].includes(user.role)
+    },
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager'].includes(user.role)
@@ -182,6 +185,10 @@ export const Staffs: CollectionConfig = {
       path: '/expense-for-staff-salaries',
       method: 'get',
       handler: async (req: any) => {
+        // 1. Access Control
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
 

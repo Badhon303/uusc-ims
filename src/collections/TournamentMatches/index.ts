@@ -13,9 +13,18 @@ export const TournamentMatches: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: isAdmin,
-    update: isAdmin,
-    delete: isAdmin,
+    create: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
+    update: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
   },
   fields: [
     {

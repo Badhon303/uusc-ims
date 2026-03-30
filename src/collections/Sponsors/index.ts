@@ -20,7 +20,7 @@ export const Sponsors: CollectionConfig = {
     create: isAdmin,
     update: ({ req: { user } }) => {
       if (!user) return false
-      return ['admin', 'coach'].includes(user.role)
+      return ['admin', 'managers'].includes(user.role)
     },
     delete: isAdmin,
   },
@@ -80,6 +80,10 @@ export const Sponsors: CollectionConfig = {
       path: '/income-from-sponsors',
       method: 'get',
       handler: async (req: any) => {
+        // 1. Access Control
+        if (!req.user || !['admin', 'managers'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
 

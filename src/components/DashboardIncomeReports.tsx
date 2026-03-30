@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { usePayloadAPI, Gutter, DatePicker } from '@payloadcms/ui'
+import { usePayloadAPI, DatePicker } from '@payloadcms/ui'
 import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 
 const formatCurrency = (val: number) =>
@@ -22,12 +22,7 @@ const DashboardIncomeReports: React.FC = () => {
 
   const [{ data, isLoading, isError }] = usePayloadAPI(apiUrl)
 
-  if (isError)
-    return (
-      <Gutter>
-        <p>Error loading dashboard stats.</p>
-      </Gutter>
-    )
+  if (isError) return null
 
   const summary = data?.summary || {}
   const breakdown = data?.breakdown || {}
@@ -77,8 +72,8 @@ const DashboardIncomeReports: React.FC = () => {
           <h1 style={{ margin: 0 }}>Income Status</h1>
           <p style={{ margin: '5px 0 0', opacity: 0.7 }}>
             {month
-              ? `Stats for ${month.toLocaleString('default', { month: 'long', year: 'numeric' })}`
-              : 'All-time cumulative stats'}
+              ? `Income for ${month.toLocaleString('default', { month: 'long', year: 'numeric' })}`
+              : 'All-time cumulative income'}
           </p>
         </div>
 

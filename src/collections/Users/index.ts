@@ -48,7 +48,7 @@ export const Users: CollectionConfig = {
     delete: isAdmin,
     admin: ({ req: { user } }) => {
       if (!user) return false
-      return ['admin', 'staff', 'coach'].includes(user.role)
+      return ['admin', 'manager', 'coach'].includes(user.role)
     },
   },
   fields: [

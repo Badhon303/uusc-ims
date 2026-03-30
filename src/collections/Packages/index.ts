@@ -13,9 +13,9 @@ export const Packages: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: () => false,
+    create: isAdmin,
     update: isAdmin,
-    delete: () => false,
+    delete: isAdmin,
   },
   fields: [
     {

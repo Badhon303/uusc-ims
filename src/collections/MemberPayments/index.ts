@@ -42,24 +42,13 @@ export const MemberPayments: CollectionConfig = {
     },
     update: ({ req: { user } }) => {
       if (!user) return false
-      if (user.role === 'admin' || user.role === 'manager') return true
-      return {
-        'user.id': { equals: user.id },
-      }
+      return ['admin', 'manager'].includes(user.role)
     },
     delete: isAdmin,
   },
   fields: [
     {
       type: 'row',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'user',
@@ -89,14 +78,6 @@ export const MemberPayments: CollectionConfig = {
     },
     {
       type: 'row',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'registrationFee',
@@ -118,14 +99,6 @@ export const MemberPayments: CollectionConfig = {
     {
       name: 'payments',
       type: 'array',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'paymentMonth',
@@ -204,6 +177,10 @@ export const MemberPayments: CollectionConfig = {
       path: '/income-from-members',
       method: 'get',
       handler: async (req: any) => {
+        // 1. Access Control
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
           let start: Date | null = null

@@ -43,24 +43,13 @@ export const StudentPayments: CollectionConfig = {
     },
     update: ({ req: { user } }) => {
       if (!user) return false
-      if (user.role === 'admin' || user.role === 'manager') return true
-      return {
-        'user.id': { equals: user.id },
-      }
+      return ['admin', 'manager'].includes(user.role)
     },
     delete: isAdmin,
   },
   fields: [
     {
       type: 'row',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'student',
@@ -90,14 +79,6 @@ export const StudentPayments: CollectionConfig = {
     },
     {
       type: 'row',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
       fields: [
         {
           name: 'registrationFee',
@@ -119,18 +100,6 @@ export const StudentPayments: CollectionConfig = {
     {
       name: 'payments',
       type: 'array',
-      access: {
-        update: ({ req }) => {
-          return (
-            req.user?.role === 'admin' || req.user?.role === 'manager' || req.user?.role === 'coach'
-          )
-        },
-        create: ({ req }) => {
-          return (
-            req.user?.role === 'admin' || req.user?.role === 'manager' || req.user?.role === 'coach'
-          )
-        },
-      },
       fields: [
         {
           name: 'paymentMonth',
@@ -209,6 +178,9 @@ export const StudentPayments: CollectionConfig = {
       path: '/income-from-students',
       method: 'get',
       handler: async (req: any) => {
+        if (!req.user || !['admin', 'manager', 'coach'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
           let start: Date | null = null

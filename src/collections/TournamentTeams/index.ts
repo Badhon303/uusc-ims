@@ -10,6 +10,21 @@ export const TournamentTeams: CollectionConfig = {
     useAsTitle: 'teamName',
     group: '🏆 Tournament',
   },
+  access: {
+    read: () => true,
+    create: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
+    update: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
+  },
   fields: [
     {
       name: 'tournament',

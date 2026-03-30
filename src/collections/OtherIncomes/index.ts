@@ -15,9 +15,22 @@ export const OtherIncomes: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
-    update: () => true,
-    delete: () => true,
+    read: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager'].includes(user.role)
+    },
+    create: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager'].includes(user.role)
+    },
+    update: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager'].includes(user.role)
+    },
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager'].includes(user.role)
+    },
   },
   fields: [
     {
@@ -46,6 +59,10 @@ export const OtherIncomes: CollectionConfig = {
       path: '/income-from-others',
       method: 'get',
       handler: async (req: any) => {
+        // 1. Access Control
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
 
@@ -85,6 +102,10 @@ export const OtherIncomes: CollectionConfig = {
       path: '/overall-income-stats',
       method: 'get',
       handler: async (req: any) => {
+        // 1. Access Control
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
           let start: Date | null = null

@@ -13,12 +13,18 @@ export const TrainingGroups: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: isAdmin,
+    create: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
     update: ({ req: { user } }) => {
       if (!user) return false
-      return ['admin', 'coach'].includes(user.role)
+      return ['admin', 'manager', 'coach'].includes(user.role)
     },
-    delete: isAdmin,
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
   },
   fields: [
     {

@@ -16,11 +16,10 @@ export const CoachSalaries: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
     create: isAdmin,
     update: ({ req: { user } }) => {
       if (!user) return false
-      return ['admin', 'coach'].includes(user.role)
+      return ['admin', 'manager'].includes(user.role)
     },
     delete: isAdmin,
   },
@@ -65,14 +64,6 @@ export const CoachSalaries: CollectionConfig = {
     {
       name: 'salaries',
       type: 'array',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin'
-        },
-      },
       fields: [
         {
           name: 'paymentMonth',

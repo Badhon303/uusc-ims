@@ -15,11 +15,11 @@ export const StudentAttendance: CollectionConfig = {
     read: () => true,
     create: ({ req: { user } }) => {
       if (!user) return false
-      return ['admin', 'manager'].includes(user.role)
+      return ['admin', 'coach'].includes(user.role)
     },
     update: ({ req: { user } }) => {
       if (!user) return false
-      return ['admin', 'manager'].includes(user.role)
+      return ['admin', 'coach'].includes(user.role)
     },
     delete: isAdmin,
   },

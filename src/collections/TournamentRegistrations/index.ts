@@ -17,8 +17,14 @@ export const TournamentRegistrations: CollectionConfig = {
   access: {
     read: () => true,
     create: () => true,
-    update: () => true,
-    delete: () => true,
+    update: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
+    delete: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager', 'coach'].includes(user.role)
+    },
   },
   fields: [
     {
@@ -53,6 +59,9 @@ export const TournamentRegistrations: CollectionConfig = {
       path: '/income-from-tournament-registrations',
       method: 'get',
       handler: async (req: any) => {
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { tournamentId } = req.query
 

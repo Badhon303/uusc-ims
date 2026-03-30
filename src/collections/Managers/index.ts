@@ -16,7 +16,10 @@ export const Managers: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: ({ req: { user } }) => {
+      if (!user) return false
+      return ['admin', 'manager'].includes(user.role)
+    },
     create: isAdmin,
     update: isAdmin,
     delete: isAdmin,

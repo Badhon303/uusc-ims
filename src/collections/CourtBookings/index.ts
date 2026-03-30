@@ -36,9 +36,21 @@ export const CourtBookings: CollectionConfig = {
     delete: ({ req: { user } }) => {
       if (!user) return false
       if (user.role === 'admin' || user.role === 'manager') return true
-      return {
-        'user.id': { equals: user.id },
+      const constraint: Where = {
+        and: [
+          {
+            'user.id': {
+              equals: user.id,
+            },
+          },
+          {
+            confirmed: {
+              not_equals: true,
+            },
+          },
+        ],
       }
+      return constraint
     },
   },
   fields: [
