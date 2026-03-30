@@ -1,4 +1,3 @@
-import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
 
 export const TrainingGroups: CollectionConfig = {

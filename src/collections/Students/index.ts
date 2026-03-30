@@ -1,6 +1,5 @@
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
-import { getMemberPackage } from '../Members'
 
 export const getStudentPackage = async (req: any) => {
   // ✅ If already fetched, reuse

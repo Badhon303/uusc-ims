@@ -1,4 +1,3 @@
-import { isAdmin } from '@/utils/access/isAdmin'
 import { CollectionConfig } from 'payload'
 
 export const Tournaments: CollectionConfig = {

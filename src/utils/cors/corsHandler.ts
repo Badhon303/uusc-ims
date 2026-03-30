@@ -1,6 +1,6 @@
 // Helper to attach CORS headers for our custom endpoints
 // This echoes back the origin if it's in our allow list and enables cookies
-export const allowedOrigins = ['http://localhost:3000']
+export const allowedOrigins = ['http://localhost:3000', 'https://uusc-admin.codemonks.dev']
 
 export const buildCorsHeaders = (request?: Request) => {
   const defaultHeaders: Record<string, string> = {

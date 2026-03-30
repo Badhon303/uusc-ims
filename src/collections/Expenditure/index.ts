@@ -1,4 +1,3 @@
-import { isAdmin } from '@/utils/access/isAdmin'
 import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
 
