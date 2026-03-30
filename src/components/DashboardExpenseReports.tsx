@@ -7,7 +7,7 @@ import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 const formatCurrency = (val: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'BDT' }).format(val)
 
-const DashboardIncomeReports: React.FC = () => {
+const DashboardExpenseReports: React.FC = () => {
   const [month, setMonth] = useState<Date | null>(null)
 
   const queryParams = new URLSearchParams()
@@ -16,7 +16,8 @@ const DashboardIncomeReports: React.FC = () => {
     queryParams.append('year', String(month.getFullYear()))
   }
 
-  const apiUrl = `/api/other-incomes/overall-income-stats${
+  // Points to the endpoint we created earlier
+  const apiUrl = `/api/expenditures/overall-expenditures-stats${
     queryParams.toString() ? `?${queryParams.toString()}` : ''
   }`
 
@@ -25,7 +26,7 @@ const DashboardIncomeReports: React.FC = () => {
   if (isError)
     return (
       <Gutter>
-        <p>Error loading dashboard stats.</p>
+        <p>Error loading expenditure stats.</p>
       </Gutter>
     )
 
@@ -34,7 +35,7 @@ const DashboardIncomeReports: React.FC = () => {
 
   return (
     <div style={{ marginBottom: '20px', width: '100%', position: 'relative' }}>
-      {/* 1. TOP LOADING OVERLAY - Subtly indicates background refresh */}
+      {/* Loading Overlay */}
       {isLoading && (
         <div
           style={{
@@ -42,18 +43,18 @@ const DashboardIncomeReports: React.FC = () => {
             top: '-10px',
             right: '0',
             fontSize: '12px',
-            color: 'var(--theme-success-500)',
+            color: '#f44336',
             fontWeight: 'bold',
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
           }}
         >
-          <span className="loading-dot"></span> Fetching Data...
+          <span className="loading-dot-red"></span> Updating Expenses...
           <style>{`
-            .loading-dot {
+            .loading-dot-red {
               width: 8px; height: 8px; 
-              background: var(--theme-success-500); 
+              background: #f44336; 
               border-radius: 50%; 
               animation: pulse 1.5s infinite;
             }
@@ -74,11 +75,11 @@ const DashboardIncomeReports: React.FC = () => {
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>Income Status</h1>
+          <h1 style={{ margin: 0 }}>Expense Status</h1>
           <p style={{ margin: '5px 0 0', opacity: 0.7 }}>
             {month
-              ? `Stats for ${month.toLocaleString('default', { month: 'long', year: 'numeric' })}`
-              : 'All-time cumulative stats'}
+              ? `Expenses for ${month.toLocaleString('default', { month: 'long', year: 'numeric' })}`
+              : 'All-time cumulative expenditures'}
           </p>
         </div>
 
@@ -110,15 +111,8 @@ const DashboardIncomeReports: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Container with Opacity during Loading */}
-      <div
-        style={{
-          opacity: isLoading ? 0.5 : 1,
-          transition: 'opacity 0.3s ease',
-          pointerEvents: isLoading ? 'none' : 'auto', // Prevent clicks during load
-        }}
-      >
-        {/* Primary Stats */}
+      <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.3s ease' }}>
+        {/* Primary Summary Cards */}
         <div
           style={{
             display: 'grid',
@@ -127,69 +121,75 @@ const DashboardIncomeReports: React.FC = () => {
             marginBottom: '40px',
           }}
         >
-          <div style={{ ...cardStyle, borderLeft: '5px solid #4caf50' }}>
-            <div style={labelStyle}>Grand Total Income</div>
-            <div style={{ ...valueStyle, fontSize: '32px', color: '#4caf50' }}>
-              {formatCurrency(summary.grandTotalIncome || 0)}
+          <div style={{ ...cardStyle, borderLeft: '5px solid #ff9800' }}>
+            <div style={labelStyle}>Grand Total Spent</div>
+            <div style={{ ...valueStyle, fontSize: '32px', color: '#ff9800' }}>
+              {formatCurrency(summary.grandTotalExpenditure || 0)}
             </div>
           </div>
           <div style={{ ...cardStyle, borderLeft: '5px solid #f44336' }}>
-            <div style={labelStyle}>Total Outstanding Due</div>
+            <div style={labelStyle}>Unpaid Salary Liabilities</div>
             <div style={{ ...valueStyle, fontSize: '32px', color: '#f44336' }}>
-              {formatCurrency(summary.grandTotalDue || 0)}
+              {formatCurrency(summary.totalSalaryDue || 0)}
             </div>
           </div>
-          <div style={{ ...cardStyle, borderLeft: '5px solid #2196f3' }}>
-            <div style={labelStyle}>Collection Rate</div>
+          <div style={{ ...cardStyle, borderLeft: '5px solid #607d8b' }}>
+            <div style={labelStyle}>Total Operational Cost</div>
             <div style={{ ...valueStyle, fontSize: '32px' }}>
-              {Number(summary.collectionRate || 0).toFixed(1)}%
+              {formatCurrency(summary.totalOperationalCost || 0)}
             </div>
           </div>
         </div>
 
-        {/* Detailed Breakdown */}
-        <h3 style={{ marginBottom: '20px' }}>Income Breakdown</h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-          }}
-        >
-          <BreakdownCard label="Members Registration" income={breakdown.memberRegistrationIncome} />
-          <BreakdownCard label="Members Subscription" income={breakdown.memberSubscriptionIncome} />
-          <BreakdownCard
-            label="Members Status"
-            income={breakdown.memberIncome}
-            due={breakdown.memberDue}
-          />
-          <BreakdownCard
-            label="Student Registration"
-            income={breakdown.studentRegistrationIncome}
-          />
-          <BreakdownCard
-            label="Student Subscription"
-            income={breakdown.studentSubscriptionIncome}
-          />
-          <BreakdownCard
-            label="Students Status"
-            income={breakdown.studentIncome}
-            due={breakdown.studentDue}
-          />
-          <BreakdownCard
-            label="Bookings"
-            income={breakdown.bookingIncome}
-            due={breakdown.bookingDue}
-          />
-          <BreakdownCard label="Sponsors" income={breakdown.sponsorIncome} />
-          <BreakdownCard label="Others" income={breakdown.otherIncome} />
+        {/* Breakdown Sections */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          {/* 1. Salaries Section */}
+          <section>
+            <h3 style={{ marginBottom: '20px' }}>Salary Expenditures</h3>
+            <div style={breakdownGridStyle}>
+              <ExpenseCard
+                label="Coach Salaries"
+                paid={breakdown.coachSalaryPaid}
+                due={breakdown.coachSalaryDue}
+              />
+              <ExpenseCard
+                label="Staff Salaries"
+                paid={breakdown.staffSalaryPaid}
+                due={breakdown.staffSalaryDue}
+              />
+              <ExpenseCard
+                label="Manager Salaries"
+                paid={breakdown.managerSalaryPaid}
+                due={breakdown.managerSalaryDue}
+              />
+            </div>
+          </section>
+
+          {/* 2. General Section */}
+          <section>
+            <h3 style={{ marginBottom: '20px' }}>General Expenditures</h3>
+            <div style={breakdownGridStyle}>
+              <ExpenseCard label="Maintenance" paid={breakdown.maintenance} />
+              <ExpenseCard label="Utility Bills" paid={breakdown.utilityBill} />
+              <ExpenseCard label="Equipment" paid={breakdown.equipmentPurchase} />
+              <ExpenseCard label="Tournaments" paid={breakdown.tournamentExpenses} />
+              <ExpenseCard label="Indoor Facility" paid={breakdown.indoorFacility} />
+              <ExpenseCard label="Miscellaneous" paid={breakdown.miscellaneous} />
+            </div>
+          </section>
         </div>
       </div>
     </div>
   )
 }
 
-const BreakdownCard = ({ label, income, due }: { label: string; income: number; due?: number }) => (
+const breakdownGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gap: '16px',
+}
+
+const ExpenseCard = ({ label, paid, due }: { label: string; paid: number; due?: number }) => (
   <div style={{ ...cardStyle, background: 'var(--theme-elevation-50)' }}>
     <div
       style={{
@@ -203,8 +203,8 @@ const BreakdownCard = ({ label, income, due }: { label: string; income: number; 
       {label}
     </div>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-      <span style={{ fontSize: '12px', opacity: 0.8 }}>Income:</span>
-      <span style={{ fontSize: '14px', fontWeight: 600 }}>{formatCurrency(income || 0)}</span>
+      <span style={{ fontSize: '12px', opacity: 0.8 }}>Paid:</span>
+      <span style={{ fontSize: '14px', fontWeight: 600 }}>{formatCurrency(paid || 0)}</span>
     </div>
     {due !== undefined && (
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -215,4 +215,4 @@ const BreakdownCard = ({ label, income, due }: { label: string; income: number; 
   </div>
 )
 
-export default DashboardIncomeReports
+export default DashboardExpenseReports

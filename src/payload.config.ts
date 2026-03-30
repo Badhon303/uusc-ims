@@ -33,7 +33,7 @@ import { TournamentMatches } from './collections/TournamentMatches'
 import { TournamentResults } from './collections/TournamentResults'
 import { BookingPayments } from './collections/BookingPayments'
 import { OtherIncomes } from './collections/OtherIncomes'
-import { Expenditure } from './collections/Expenditure'
+import { Expenditures } from './collections/Expenditures'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -46,7 +46,10 @@ export default buildConfig({
     },
     // Add your own logo and icon here
     components: {
-      beforeDashboard: ['./components/DashboardIncomeReports'],
+      beforeDashboard: [
+        './components/DashboardIncomeReports',
+        './components/DashboardExpenseReports',
+      ],
       beforeNavLinks: ['./components/DashboardNavLink'],
       afterLogin: ['./components/PoweredBy'],
       logout: {
@@ -85,7 +88,7 @@ export default buildConfig({
     CoachSalaries,
     Managers,
     Staffs,
-    Expenditure,
+    Expenditures,
     // Payments & Packages
     MemberPayments,
     StudentPayments,

@@ -77,7 +77,7 @@ export interface Config {
     'coach-salaries': CoachSalary;
     managers: Manager;
     staffs: Staff;
-    expenditure: Expenditure;
+    expenditures: Expenditure;
     'member-payments': MemberPayment;
     'student-payments': StudentPayment;
     'booking-payments': BookingPayment;
@@ -111,7 +111,7 @@ export interface Config {
     'coach-salaries': CoachSalariesSelect<false> | CoachSalariesSelect<true>;
     managers: ManagersSelect<false> | ManagersSelect<true>;
     staffs: StaffsSelect<false> | StaffsSelect<true>;
-    expenditure: ExpenditureSelect<false> | ExpenditureSelect<true>;
+    expenditures: ExpendituresSelect<false> | ExpendituresSelect<true>;
     'member-payments': MemberPaymentsSelect<false> | MemberPaymentsSelect<true>;
     'student-payments': StudentPaymentsSelect<false> | StudentPaymentsSelect<true>;
     'booking-payments': BookingPaymentsSelect<false> | BookingPaymentsSelect<true>;
@@ -436,21 +436,18 @@ export interface Staff {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "expenditure".
+ * via the `definition` "expenditures".
  */
 export interface Expenditure {
   id: number;
   title: string;
-  type?:
-    | (
-        | 'maintenance'
-        | 'utility-bill'
-        | 'equipment-purchase'
-        | 'tournament-expenses'
-        | 'indoor-facility'
-        | 'miscellaneous'
-      )
-    | null;
+  type:
+    | 'maintenance'
+    | 'utility-bill'
+    | 'equipment-purchase'
+    | 'tournament-expenses'
+    | 'indoor-facility'
+    | 'miscellaneous';
   amount: number;
   date: string;
   description?: string | null;
@@ -850,7 +847,7 @@ export interface PayloadLockedDocument {
         value: number | Staff;
       } | null)
     | ({
-        relationTo: 'expenditure';
+        relationTo: 'expenditures';
         value: number | Expenditure;
       } | null)
     | ({
@@ -1208,9 +1205,9 @@ export interface StaffsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "expenditure_select".
+ * via the `definition` "expenditures_select".
  */
-export interface ExpenditureSelect<T extends boolean = true> {
+export interface ExpendituresSelect<T extends boolean = true> {
   title?: T;
   type?: T;
   amount?: T;
