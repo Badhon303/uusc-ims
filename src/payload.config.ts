@@ -33,7 +33,7 @@ import { TournamentMatches } from './collections/TournamentMatches'
 import { TournamentResults } from './collections/TournamentResults'
 import { BookingPayments } from './collections/BookingPayments'
 import { OtherIncomes } from './collections/OtherIncomes'
-import { Expenditures } from './collections/Expenditures'
+import { Expenditures } from './collections/Expenditure'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
