@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { usePayloadAPI, DatePicker } from '@payloadcms/ui'
+import { usePayloadAPI, DatePicker, useAuth } from '@payloadcms/ui'
 import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 
 const formatCurrency = (val: number) =>
@@ -21,9 +21,19 @@ const DashboardExpenseReports: React.FC = () => {
     queryParams.toString() ? `?${queryParams.toString()}` : ''
   }`
 
+  const { user } = useAuth()
+  const isManager = user?.role?.includes('coach')
+  if (isManager) return null
+
   const [{ data, isLoading, isError }] = usePayloadAPI(apiUrl)
 
-  if (isError) return null
+  if (isError) {
+    return (
+      <div>
+        <p>Error loading dashboard stats.</p>
+      </div>
+    )
+  }
 
   const summary = data?.summary || {}
   const breakdown = data?.breakdown || {}

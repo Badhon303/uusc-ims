@@ -24,8 +24,8 @@ export const getStudentPackage = async (req: any) => {
 export const Students: CollectionConfig = {
   slug: 'students',
   labels: {
-    singular: '🦖 Student',
-    plural: '🦖 Students',
+    singular: '🐸 Student',
+    plural: '🐸 Students',
   },
   admin: {
     useAsTitle: 'studentName',
