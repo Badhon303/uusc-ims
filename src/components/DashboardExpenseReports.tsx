@@ -22,10 +22,9 @@ const DashboardExpenseReports: React.FC = () => {
     queryParams.toString() ? `?${queryParams.toString()}` : ''
   }`
 
+  const [{ data, isLoading, isError }] = usePayloadAPI(apiUrl)
   const isManager = user?.role?.includes('coach')
   if (isManager) return null
-
-  const [{ data, isLoading, isError }] = usePayloadAPI(apiUrl)
 
   if (isError) {
     return (
