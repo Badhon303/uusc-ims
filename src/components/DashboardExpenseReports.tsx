@@ -8,6 +8,7 @@ const formatCurrency = (val: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'BDT' }).format(val)
 
 const DashboardExpenseReports: React.FC = () => {
+  const { user } = useAuth()
   const [month, setMonth] = useState<Date | null>(null)
 
   const queryParams = new URLSearchParams()
@@ -21,7 +22,6 @@ const DashboardExpenseReports: React.FC = () => {
     queryParams.toString() ? `?${queryParams.toString()}` : ''
   }`
 
-  const { user } = useAuth()
   const isManager = user?.role?.includes('coach')
   if (isManager) return null
 
