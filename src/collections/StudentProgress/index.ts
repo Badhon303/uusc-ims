@@ -48,6 +48,23 @@ export const StudentProgress: CollectionConfig = {
     {
       name: 'evaluations',
       type: 'array',
+      validate: (val: any) => {
+        if (!val || !Array.isArray(val)) return true
+
+        const seen = new Set()
+        for (const p of val) {
+          if (!p.evaluationMonth) continue
+          const date = new Date(p.evaluationMonth)
+          // Key format: "2024-5" (Year-MonthIndex)
+          const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+
+          if (seen.has(key)) {
+            return `Duplicate evaluation detected for ${date.toLocaleString('default', { month: 'long', year: 'numeric' })}`
+          }
+          seen.add(key)
+        }
+        return true
+      },
       fields: [
         {
           name: 'evaluationMonth',

@@ -35,6 +35,23 @@ export const StudentAttendance: CollectionConfig = {
     {
       name: 'attendances',
       type: 'array',
+      validate: (val: any) => {
+        if (!val || !Array.isArray(val)) return true
+
+        const seen = new Set()
+        for (const p of val) {
+          if (!p.attendanceMonth) continue
+          const date = new Date(p.attendanceMonth)
+          // Key format: "2024-5" (Year-MonthIndex)
+          const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+
+          if (seen.has(key)) {
+            return `Duplicate attendance detected for ${date.toLocaleString('default', { month: 'long', year: 'numeric' })}`
+          }
+          seen.add(key)
+        }
+        return true
+      },
       fields: [
         {
           name: 'attendanceMonth',
