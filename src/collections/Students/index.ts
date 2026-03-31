@@ -49,9 +49,9 @@ export const Students: CollectionConfig = {
     {
       name: 'studentName',
       type: 'text',
-      admin: {
-        hidden: true, // Don't show it as its own field in the UI
-      },
+      // admin: {
+      //   hidden: true, // Don't show it as its own field in the UI
+      // },
     },
     {
       type: 'row',
@@ -71,8 +71,12 @@ export const Students: CollectionConfig = {
           required: true,
           unique: true,
           hasMany: false,
-          defaultValue: ({ user }) => {
-            return user?.id
+          filterOptions: () => {
+            return {
+              role: {
+                equals: 'student',
+              },
+            }
           },
         },
         {

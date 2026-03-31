@@ -32,6 +32,13 @@ export const TournamentRegistrations: CollectionConfig = {
       type: 'relationship',
       relationTo: 'tournaments',
       required: true,
+      filterOptions: () => {
+        return {
+          status: {
+            equals: 'open',
+          },
+        }
+      },
     },
     {
       name: 'user',
@@ -42,12 +49,27 @@ export const TournamentRegistrations: CollectionConfig = {
     {
       name: 'registrationDate',
       type: 'date',
-      required: true,
+      defaultValue: new Date().toISOString(),
+      access: {
+        update: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+        create: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+      },
     },
     {
       name: 'paymentStatus',
       type: 'select',
-      required: true,
+      access: {
+        update: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+        create: ({ req }) => {
+          return req.user?.role === 'admin' || req.user?.role === 'manager'
+        },
+      },
       options: [
         { label: 'Paid', value: 'paid' },
         { label: 'Unpaid', value: 'unpaid' },

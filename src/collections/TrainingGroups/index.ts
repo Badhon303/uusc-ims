@@ -42,16 +42,42 @@ export const TrainingGroups: CollectionConfig = {
       type: 'relationship',
       relationTo: 'students',
       hasMany: true,
+      required: true,
     },
     {
-      name: 'skillLevel',
-      type: 'select',
-      options: [
-        { label: 'Beginner', value: 'beginner' },
-        { label: 'Intermediate', value: 'intermediate' },
-        { label: 'Advanced', value: 'advanced' },
+      type: 'row',
+      fields: [
+        {
+          name: 'skillLevel',
+          type: 'select',
+          options: [
+            { label: 'Beginner', value: 'beginner' },
+            { label: 'Intermediate', value: 'intermediate' },
+            { label: 'Advanced', value: 'advanced' },
+          ],
+          required: true,
+        },
+        {
+          name: 'status',
+          type: 'select',
+          options: [
+            {
+              label: 'Active',
+              value: 'active',
+            },
+            {
+              label: 'Pending',
+              value: 'pending',
+            },
+            {
+              label: 'Inactive',
+              value: 'inactive',
+            },
+          ],
+          defaultValue: 'inactive',
+          required: true,
+        },
       ],
-      required: true,
     },
   ],
 }

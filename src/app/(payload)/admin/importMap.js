@@ -31,6 +31,7 @@ import { default as default_5feee5f57460135a79f89c3ba65005b5 } from '@/component
 import { default as default_c695a96d4a83f3ba7fa8b2b55e67a9db } from '@/components/SponsorReports'
 import { default as default_14fd2c3c6ea870fc48a5015ea8f000bb } from '@/components/OtherIncomeReports'
 import { default as default_34f5ae3a6fdc176bcb35a3d75077f530 } from '@/components/TournamentReports'
+import { default as default_2cb3b5d163a6b407607a6b10da68fa26 } from '@/components/TeamSelectField'
 import { default as default_cd59f2d5ea92c0c577f907bfdaed3186 } from '../../../components/PoweredByAfterLogout'
 import { Icon as Icon_9c1a3ff8a9adb7b1e4b7a5cd42725bdb } from '../../../graphics/Icon/index.tsx'
 import { Logo as Logo_217937c36742cdefe571d11857c968fa } from '../../../graphics/Logo/index.tsx'
@@ -74,6 +75,7 @@ export const importMap = {
   "@/components/SponsorReports#default": default_c695a96d4a83f3ba7fa8b2b55e67a9db,
   "@/components/OtherIncomeReports#default": default_14fd2c3c6ea870fc48a5015ea8f000bb,
   "@/components/TournamentReports#default": default_34f5ae3a6fdc176bcb35a3d75077f530,
+  "@/components/TeamSelectField#default": default_2cb3b5d163a6b407607a6b10da68fa26,
   "./components/PoweredByAfterLogout#default": default_cd59f2d5ea92c0c577f907bfdaed3186,
   "/graphics/Icon/index.tsx#Icon": Icon_9c1a3ff8a9adb7b1e4b7a5cd42725bdb,
   "/graphics/Logo/index.tsx#Logo": Logo_217937c36742cdefe571d11857c968fa,

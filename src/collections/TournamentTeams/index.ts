@@ -7,7 +7,7 @@ export const TournamentTeams: CollectionConfig = {
     plural: '🧑‍🤝‍🧑 Tournament Teams',
   },
   admin: {
-    useAsTitle: 'teamName',
+    useAsTitle: 'tournament',
     group: '🏆 Tournament',
   },
   access: {
@@ -31,23 +31,36 @@ export const TournamentTeams: CollectionConfig = {
       type: 'relationship',
       relationTo: 'tournaments',
       required: true,
+      unique: true,
+      filterOptions: () => {
+        return {
+          status: {
+            equals: 'open',
+          },
+        }
+      },
     },
     {
-      name: 'teamName',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'playerOne',
-      type: 'relationship',
-      relationTo: 'users',
-      required: true,
-    },
-    {
-      name: 'playerTwo',
-      type: 'relationship',
-      relationTo: 'users',
-      required: true,
+      name: 'teams',
+      type: 'array',
+      fields: [
+        {
+          name: 'teamName',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'players',
+          label: {
+            singular: 'Player',
+            plural: 'Players',
+          },
+          type: 'relationship',
+          relationTo: 'users',
+          required: true,
+          hasMany: true,
+        },
+      ],
     },
   ],
 }

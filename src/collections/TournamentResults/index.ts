@@ -31,18 +31,19 @@ export const TournamentResults: CollectionConfig = {
       type: 'relationship',
       relationTo: 'tournaments',
       required: true,
+      unique: true,
     },
     {
       name: 'teamPositions',
       type: 'array',
       required: true,
       fields: [
-        {
-          name: 'teamId',
-          type: 'relationship',
-          relationTo: 'tournament-teams',
-          required: true,
-        },
+        // {
+        //   name: 'teamId',
+        //   type: 'relationship',
+        //   relationTo: 'tournament-teams',
+        //   required: true,
+        // },
         {
           name: 'position',
           type: 'number',

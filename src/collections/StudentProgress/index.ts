@@ -104,7 +104,10 @@ export const StudentProgress: CollectionConfig = {
             },
             {
               name: 'score',
+              label: 'Score (1-10)',
               type: 'number',
+              min: 1,
+              max: 10,
             },
           ],
         },

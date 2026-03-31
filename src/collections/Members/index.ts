@@ -71,8 +71,12 @@ export const Members: CollectionConfig = {
           required: true,
           unique: true,
           hasMany: false,
-          defaultValue: ({ user }) => {
-            return user?.id
+          filterOptions: () => {
+            return {
+              role: {
+                equals: 'member',
+              },
+            }
           },
         },
         {

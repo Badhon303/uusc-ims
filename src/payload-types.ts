@@ -574,8 +574,9 @@ export interface TrainingGroup {
   id: number;
   name: string;
   coach: number | Coach;
-  students?: (number | Student)[] | null;
+  students: (number | Student)[];
   skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  status: 'active' | 'pending' | 'inactive';
   updatedAt: string;
   createdAt: string;
 }
@@ -681,8 +682,8 @@ export interface TournamentRegistration {
   id: number;
   tournament: number | Tournament;
   user: number | User;
-  registrationDate: string;
-  paymentStatus: 'paid' | 'unpaid';
+  registrationDate?: string | null;
+  paymentStatus?: ('paid' | 'unpaid') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -693,9 +694,13 @@ export interface TournamentRegistration {
 export interface TournamentTeam {
   id: number;
   tournament: number | Tournament;
-  teamName: string;
-  playerOne: number | User;
-  playerTwo: number | User;
+  teams?:
+    | {
+        teamName: string;
+        players: (number | User)[];
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -706,10 +711,10 @@ export interface TournamentTeam {
 export interface TournamentMatch {
   id: number;
   tournament: number | Tournament;
-  teamOne: number | TournamentTeam;
-  teamTwo?: (number | null) | TournamentTeam;
+  teamOne: string;
+  teamTwo?: string | null;
+  winner?: string | null;
   court: number | Court;
-  winner: number | TournamentTeam;
   scheduledTime: string;
   teamOneScore: number;
   teamTwoScore: number;
@@ -724,7 +729,6 @@ export interface TournamentResult {
   id: number;
   tournament: number | Tournament;
   teamPositions: {
-    teamId: number | TournamentTeam;
     position: number;
     prizeAmount: number;
     id?: string | null;
@@ -1313,6 +1317,7 @@ export interface TrainingGroupsSelect<T extends boolean = true> {
   coach?: T;
   students?: T;
   skillLevel?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1398,9 +1403,13 @@ export interface TournamentRegistrationsSelect<T extends boolean = true> {
  */
 export interface TournamentTeamsSelect<T extends boolean = true> {
   tournament?: T;
-  teamName?: T;
-  playerOne?: T;
-  playerTwo?: T;
+  teams?:
+    | T
+    | {
+        teamName?: T;
+        players?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1412,8 +1421,8 @@ export interface TournamentMatchesSelect<T extends boolean = true> {
   tournament?: T;
   teamOne?: T;
   teamTwo?: T;
-  court?: T;
   winner?: T;
+  court?: T;
   scheduledTime?: T;
   teamOneScore?: T;
   teamTwoScore?: T;
@@ -1429,7 +1438,6 @@ export interface TournamentResultsSelect<T extends boolean = true> {
   teamPositions?:
     | T
     | {
-        teamId?: T;
         position?: T;
         prizeAmount?: T;
         id?: T;

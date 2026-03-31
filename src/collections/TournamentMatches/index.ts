@@ -1,4 +1,5 @@
-import { CollectionConfig, Where } from 'payload'
+// collections/TournamentMatches.ts
+import { CollectionConfig } from 'payload'
 
 export const TournamentMatches: CollectionConfig = {
   slug: 'tournament-matches',
@@ -32,93 +33,58 @@ export const TournamentMatches: CollectionConfig = {
       relationTo: 'tournaments',
       required: true,
     },
-
-    // ✅ Team One
     {
       name: 'teamOne',
-      type: 'relationship',
-      relationTo: 'tournament-teams',
+      type: 'text',
       required: true,
-      filterOptions: ({ data }): Where | boolean => {
-        if (!data?.tournament) return true
-
-        return {
-          tournament: {
-            equals: data.tournament,
-          },
-        }
+      admin: {
+        components: {
+          Field: '@/components/TeamSelectField',
+        },
       },
     },
-
-    // ✅ Team Two (only visible after teamOne is selected)
     {
       name: 'teamTwo',
-      type: 'relationship',
-      relationTo: 'tournament-teams',
+      type: 'text',
       required: true,
-
-      // ⭐ BONUS: Hide until teamOne is selected
       admin: {
         condition: (_, siblingData) => !!siblingData.teamOne,
-      },
-
-      filterOptions: ({ data }): Where | boolean => {
-        if (!data?.tournament) return true
-
-        const where: Where = {
-          and: [
-            {
-              tournament: {
-                equals: data.tournament,
-              },
-            },
-            {
-              id: {
-                not_equals: data.teamOne,
-              },
-            },
-          ],
-        }
-
-        return where
+        components: {
+          Field: '@/components/TeamSelectField',
+        },
       },
     },
+    {
+      name: 'winner',
+      type: 'text',
+      required: true,
+      admin: {
+        condition: (_, siblingData) => !!siblingData.teamOne && !!siblingData.teamTwo,
+        components: {
+          Field: '@/components/TeamSelectField',
+        },
+      },
+      // Update the validation signature here
+      validate: (value: any, { data }: any) => {
+        // 1. Handle potential empty values (Payload passes null/undefined sometimes)
+        if (!value || typeof value !== 'string') {
+          return 'Winner is required'
+        }
 
+        // 2. Perform your logic
+        if (value !== data?.teamOne && value !== data?.teamTwo) {
+          return 'Winner must be Team One or Team Two'
+        }
+
+        return true
+      },
+    },
     {
       name: 'court',
       type: 'relationship',
       relationTo: 'courts',
       required: true,
     },
-
-    // ✅ Winner (must be teamOne or teamTwo)
-    {
-      name: 'winner',
-      type: 'relationship',
-      relationTo: 'tournament-teams',
-      required: true,
-
-      filterOptions: ({ data }): Where | boolean => {
-        if (!data?.teamOne || !data?.teamTwo) return false
-
-        return {
-          id: {
-            in: [data.teamOne, data.teamTwo],
-          },
-        }
-      },
-
-      validate: (value: any, { data }: any) => {
-        if (!value) return 'Winner is required'
-
-        if (value !== data.teamOne && value !== data.teamTwo) {
-          return 'Winner must be either Team One or Team Two'
-        }
-
-        return true
-      },
-    },
-
     {
       name: 'scheduledTime',
       type: 'date',
@@ -133,6 +99,40 @@ export const TournamentMatches: CollectionConfig = {
       name: 'teamTwoScore',
       type: 'number',
       required: true,
+    },
+  ],
+  endpoints: [
+    {
+      path: '/team-names',
+      method: 'get',
+      handler: async (req) => {
+        const { tournamentId } = req.query
+
+        if (!tournamentId) {
+          return Response.json({ error: 'tournamentId is required' }, { status: 400 })
+        }
+
+        try {
+          // Payload exposes the raw pg pool via req.payload.db.pool
+          const result = await req.payload.db.pool.query(
+            `
+            SELECT
+              ttt.id,
+              ttt.team_name AS "teamName"
+            FROM tournament_teams tt
+            JOIN tournament_teams_teams ttt ON ttt._parent_id = tt.id
+            WHERE tt.tournament_id = $1
+            ORDER BY ttt.team_name ASC
+            `,
+            [tournamentId],
+          )
+
+          return Response.json({ teams: result.rows }, { status: 200 })
+        } catch (err) {
+          console.error('SQL Error:', err)
+          return Response.json({ error: 'Failed to fetch team names' }, { status: 500 })
+        }
+      },
     },
   ],
 }
