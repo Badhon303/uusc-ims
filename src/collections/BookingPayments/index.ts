@@ -37,6 +37,23 @@ export const BookingPayments: CollectionConfig = {
       required: true,
       unique: true,
       hasMany: false,
+      filterOptions: async ({ req }) => {
+        // 1. Get all booking_ids already used in booking-payments
+        const existingPayments = await req.payload.find({
+          collection: 'booking-payments',
+          depth: 0,
+          pagination: false,
+        })
+
+        const usedBookingIds = existingPayments.docs.map((doc: any) => doc.booking).filter(Boolean)
+
+        // 2. Return filter to exclude them
+        return {
+          id: {
+            not_in: usedBookingIds.length ? usedBookingIds : ['none'], // prevent empty array issue
+          },
+        }
+      },
     },
     {
       name: 'totalAmount',
