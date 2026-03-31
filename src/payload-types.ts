@@ -711,13 +711,23 @@ export interface TournamentTeam {
 export interface TournamentMatch {
   id: number;
   tournament: number | Tournament;
-  teamOne: string;
-  teamTwo?: string | null;
-  winner?: string | null;
-  court: number | Court;
-  scheduledTime: string;
-  teamOneScore: number;
-  teamTwoScore: number;
+  matches?:
+    | {
+        teamOne: string;
+        teamTwo: string;
+        winner?: string | null;
+        court: number | Court;
+        scheduledTime: string;
+        scores?:
+          | {
+              teamOneScore?: number | null;
+              teamTwoScore?: number | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -729,6 +739,7 @@ export interface TournamentResult {
   id: number;
   tournament: number | Tournament;
   teamPositions: {
+    team: string;
     position: number;
     prizeAmount: number;
     id?: string | null;
@@ -1419,13 +1430,23 @@ export interface TournamentTeamsSelect<T extends boolean = true> {
  */
 export interface TournamentMatchesSelect<T extends boolean = true> {
   tournament?: T;
-  teamOne?: T;
-  teamTwo?: T;
-  winner?: T;
-  court?: T;
-  scheduledTime?: T;
-  teamOneScore?: T;
-  teamTwoScore?: T;
+  matches?:
+    | T
+    | {
+        teamOne?: T;
+        teamTwo?: T;
+        winner?: T;
+        court?: T;
+        scheduledTime?: T;
+        scores?:
+          | T
+          | {
+              teamOneScore?: T;
+              teamTwoScore?: T;
+              id?: T;
+            };
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1438,6 +1459,7 @@ export interface TournamentResultsSelect<T extends boolean = true> {
   teamPositions?:
     | T
     | {
+        team?: T;
         position?: T;
         prizeAmount?: T;
         id?: T;

@@ -34,71 +34,69 @@ export const TournamentMatches: CollectionConfig = {
       required: true,
     },
     {
-      name: 'teamOne',
-      type: 'text',
-      required: true,
-      admin: {
-        components: {
-          Field: '@/components/TeamSelectField',
+      name: 'matches',
+      type: 'array',
+      fields: [
+        {
+          name: 'teamOne',
+          type: 'text',
+          required: true,
+          admin: {
+            components: {
+              Field: '@/components/MatchTeamSelectField',
+            },
+          },
         },
-      },
-    },
-    {
-      name: 'teamTwo',
-      type: 'text',
-      required: true,
-      admin: {
-        condition: (_, siblingData) => !!siblingData.teamOne,
-        components: {
-          Field: '@/components/TeamSelectField',
+        {
+          name: 'teamTwo',
+          type: 'text',
+          required: true,
+          admin: {
+            components: {
+              Field: '@/components/MatchTeamSelectField',
+            },
+          },
         },
-      },
-    },
-    {
-      name: 'winner',
-      type: 'text',
-      required: true,
-      admin: {
-        condition: (_, siblingData) => !!siblingData.teamOne && !!siblingData.teamTwo,
-        components: {
-          Field: '@/components/TeamSelectField',
+        {
+          name: 'winner',
+          type: 'text',
+          admin: {
+            components: {
+              Field: '@/components/MatchTeamSelectField',
+            },
+          },
         },
-      },
-      // Update the validation signature here
-      validate: (value: any, { data }: any) => {
-        // 1. Handle potential empty values (Payload passes null/undefined sometimes)
-        if (!value || typeof value !== 'string') {
-          return 'Winner is required'
-        }
-
-        // 2. Perform your logic
-        if (value !== data?.teamOne && value !== data?.teamTwo) {
-          return 'Winner must be Team One or Team Two'
-        }
-
-        return true
-      },
-    },
-    {
-      name: 'court',
-      type: 'relationship',
-      relationTo: 'courts',
-      required: true,
-    },
-    {
-      name: 'scheduledTime',
-      type: 'date',
-      required: true,
-    },
-    {
-      name: 'teamOneScore',
-      type: 'number',
-      required: true,
-    },
-    {
-      name: 'teamTwoScore',
-      type: 'number',
-      required: true,
+        {
+          name: 'court',
+          type: 'relationship',
+          relationTo: 'courts',
+          required: true,
+        },
+        {
+          name: 'scheduledTime',
+          type: 'date',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+          },
+          required: true,
+        },
+        {
+          name: 'scores',
+          type: 'array',
+          fields: [
+            {
+              name: 'teamOneScore',
+              type: 'number',
+            },
+            {
+              name: 'teamTwoScore',
+              type: 'number',
+            },
+          ],
+        },
+      ],
     },
   ],
   endpoints: [

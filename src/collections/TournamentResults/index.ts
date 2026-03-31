@@ -38,15 +38,21 @@ export const TournamentResults: CollectionConfig = {
       type: 'array',
       required: true,
       fields: [
-        // {
-        //   name: 'teamId',
-        //   type: 'relationship',
-        //   relationTo: 'tournament-teams',
-        //   required: true,
-        // },
+        {
+          name: 'team',
+          type: 'text',
+          required: true,
+          unique: true,
+          admin: {
+            components: {
+              Field: '@/components/ResultTeamSelectField',
+            },
+          },
+        },
         {
           name: 'position',
           type: 'number',
+          unique: true,
           required: true,
         },
         {
