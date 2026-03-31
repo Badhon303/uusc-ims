@@ -105,13 +105,6 @@ export const CourtBookings: CollectionConfig = {
       hasMany: false,
     },
     {
-      name: 'courts',
-      type: 'relationship',
-      relationTo: 'courts',
-      required: true,
-      hasMany: true,
-    },
-    {
       name: 'bookings',
       type: 'array',
       required: true,
@@ -139,6 +132,13 @@ export const CourtBookings: CollectionConfig = {
         {
           type: 'row',
           fields: [
+            {
+              name: 'courts',
+              type: 'relationship',
+              relationTo: 'courts',
+              required: true,
+              hasMany: true,
+            },
             {
               name: 'bookingDate',
               type: 'date',

@@ -522,8 +522,8 @@ export interface CourtBooking {
   id: number;
   title?: string | null;
   user: number | User;
-  courts: (number | Court)[];
   bookings: {
+    courts: (number | Court)[];
     bookingDate: string;
     startTime: string;
     endTime: string;
@@ -1492,10 +1492,10 @@ export interface MemberSchedulesSelect<T extends boolean = true> {
 export interface CourtBookingsSelect<T extends boolean = true> {
   title?: T;
   user?: T;
-  courts?: T;
   bookings?:
     | T
     | {
+        courts?: T;
         bookingDate?: T;
         startTime?: T;
         endTime?: T;
