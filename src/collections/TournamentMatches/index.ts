@@ -38,33 +38,38 @@ export const TournamentMatches: CollectionConfig = {
       type: 'array',
       fields: [
         {
-          name: 'teamOne',
-          type: 'text',
-          required: true,
-          admin: {
-            components: {
-              Field: '@/components/MatchTeamSelectField',
+          type: 'row',
+          fields: [
+            {
+              name: 'teamOne',
+              type: 'text',
+              required: true,
+              admin: {
+                components: {
+                  Field: '@/components/MatchTeamSelectField',
+                },
+              },
             },
-          },
-        },
-        {
-          name: 'teamTwo',
-          type: 'text',
-          required: true,
-          admin: {
-            components: {
-              Field: '@/components/MatchTeamSelectField',
+            {
+              name: 'teamTwo',
+              type: 'text',
+              required: true,
+              admin: {
+                components: {
+                  Field: '@/components/MatchTeamSelectField',
+                },
+              },
             },
-          },
-        },
-        {
-          name: 'winner',
-          type: 'text',
-          admin: {
-            components: {
-              Field: '@/components/MatchTeamSelectField',
+            {
+              name: 'winner',
+              type: 'text',
+              admin: {
+                components: {
+                  Field: '@/components/MatchTeamSelectField',
+                },
+              },
             },
-          },
+          ],
         },
         {
           name: 'court',
