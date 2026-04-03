@@ -147,17 +147,6 @@ export const TournamentRegistrations: CollectionConfig = {
       ],
     },
   ],
-  hooks: {
-    afterRead: [
-      ({ doc }: any) => {
-        if (doc.user && typeof doc.user === 'object') {
-          delete doc.user.collection
-          delete doc.user.sessions
-        }
-        return doc
-      },
-    ],
-  },
   endpoints: [
     {
       path: '/income-from-tournament-registrations',

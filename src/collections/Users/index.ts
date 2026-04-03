@@ -5,6 +5,9 @@ import path from 'path'
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  defaultPopulate: {
+    sessions: false,
+  },
   labels: {
     singular: '🐻‍❄️ User',
     plural: '🐻‍❄️ Users',
@@ -30,13 +33,7 @@ export const Users: CollectionConfig = {
     },
   },
   access: {
-    read: ({ req: { user } }) => {
-      if (!user) return false
-      if (user.role === 'admin') return true
-      return {
-        id: { equals: user.id },
-      }
-    },
+    read: () => true,
     create: isAdmin,
     update: ({ req: { user } }) => {
       if (!user) return false
@@ -127,6 +124,14 @@ export const Users: CollectionConfig = {
       ],
     },
   ],
+  hooks: {
+    afterRead: [
+      ({ doc }) => {
+        delete doc.collection
+        return doc
+      },
+    ],
+  },
   endpoints: [
     {
       path: '/change-password',
