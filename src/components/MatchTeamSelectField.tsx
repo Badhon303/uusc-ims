@@ -75,7 +75,7 @@ const MatchTeamSelectField: React.FC<Props> = ({ path, field }) => {
   const filteredTeams = getFilteredOptions()
 
   return (
-    <div className="field-type" style={{ width: '32%' }}>
+    <div className="field-type" style={{ width: '32.33%' }}>
       <label
         htmlFor={path}
         className="field-label"
