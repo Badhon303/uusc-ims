@@ -90,14 +90,25 @@ export const TournamentMatches: CollectionConfig = {
         {
           name: 'scores',
           type: 'array',
+          maxRows: 3,
+          minRows: 1,
           fields: [
             {
-              name: 'teamOneScore',
-              type: 'number',
-            },
-            {
-              name: 'teamTwoScore',
-              type: 'number',
+              type: 'row',
+              fields: [
+                {
+                  name: 'teamOneScore',
+                  type: 'number',
+                  max: 30,
+                  min: 0,
+                },
+                {
+                  name: 'teamTwoScore',
+                  type: 'number',
+                  max: 30,
+                  min: 0,
+                },
+              ],
             },
           ],
         },
@@ -116,24 +127,153 @@ export const TournamentMatches: CollectionConfig = {
         }
 
         try {
-          // Payload exposes the raw pg pool via req.payload.db.pool
-          const result = await req.payload.db.pool.query(
-            `
-            SELECT
-              ttt.id,
-              ttt.team_name AS "teamName"
-            FROM tournament_teams tt
-            JOIN tournament_teams_teams ttt ON ttt._parent_id = tt.id
-            WHERE tt.tournament_id = $1
-            ORDER BY ttt.team_name ASC
-            `,
-            [tournamentId],
-          )
+          // Use Payload's query instead of raw SQL
+          const tournamentTeams = await req.payload.find({
+            collection: 'tournament-teams',
+            where: {
+              tournament: {
+                equals: tournamentId,
+              },
+            },
+            depth: 2,
+          })
 
-          return Response.json({ teams: result.rows }, { status: 200 })
+          const teams = []
+
+          for (const tournamentTeam of tournamentTeams.docs) {
+            if (tournamentTeam.teams && Array.isArray(tournamentTeam.teams)) {
+              for (const team of tournamentTeam.teams) {
+                // Get player details for each team
+                const players = []
+                if (team.players && Array.isArray(team.players)) {
+                  for (const player of team.players) {
+                    const playerData =
+                      typeof player === 'object'
+                        ? player
+                        : await req.payload.findByID({
+                            collection: 'users',
+                            id: player,
+                          })
+                    players.push({
+                      id: playerData.id,
+                      name: playerData.name || playerData.email || `Player ${playerData.id}`,
+                    })
+                  }
+                }
+
+                teams.push({
+                  id: team.id,
+                  teamName: team.teamName,
+                  players: players,
+                })
+              }
+            }
+          }
+
+          return Response.json({ teams }, { status: 200 })
         } catch (err) {
-          console.error('SQL Error:', err)
+          console.error('Error:', err)
           return Response.json({ error: 'Failed to fetch team names' }, { status: 500 })
+        }
+      },
+    },
+    {
+      path: '/with-team-details',
+      method: 'get',
+      handler: async (req) => {
+        const { tournamentId } = req.query
+
+        if (!tournamentId) {
+          return Response.json({ error: 'tournamentId is required' }, { status: 400 })
+        }
+
+        try {
+          // First, get the matches
+          const matches = await req.payload.find({
+            collection: 'tournament-matches',
+            where: {
+              tournament: {
+                equals: tournamentId,
+              },
+            },
+            depth: 2,
+          })
+
+          // Get all team details for this tournament
+          const tournamentTeams = await req.payload.find({
+            collection: 'tournament-teams',
+            where: {
+              tournament: {
+                equals: tournamentId,
+              },
+            },
+            depth: 2,
+          })
+
+          // Create a map of team names to their details
+          const teamDetailsMap = new Map()
+
+          for (const tournamentTeam of tournamentTeams.docs) {
+            if (tournamentTeam.teams && Array.isArray(tournamentTeam.teams)) {
+              for (const team of tournamentTeam.teams) {
+                // Get full player details
+                const playersWithDetails = []
+                if (team.players && Array.isArray(team.players)) {
+                  for (const player of team.players) {
+                    const playerData =
+                      typeof player === 'object' && player !== null
+                        ? player
+                        : await req.payload.findByID({
+                            collection: 'users',
+                            id: player,
+                            depth: 0,
+                          })
+
+                    playersWithDetails.push({
+                      id: playerData.id,
+                      name: playerData.name || playerData.email,
+                      email: playerData.email,
+                      role: playerData.role,
+                    })
+                  }
+                }
+
+                teamDetailsMap.set(team.teamName, {
+                  id: team.id,
+                  teamName: team.teamName,
+                  players: playersWithDetails,
+                })
+              }
+            }
+          }
+
+          // Enhance matches with team details
+          const enhancedDocs = matches.docs.map((match) => ({
+            ...match,
+            matches:
+              match.matches?.map((m) => {
+                const { teamOne, teamTwo, winner, ...rest } = m
+                return {
+                  ...rest,
+                  teamOneDetails: teamDetailsMap.get(teamOne) || null,
+                  teamTwoDetails: teamDetailsMap.get(teamTwo) || null,
+                  winnerDetails: teamDetailsMap.get(winner) || null,
+                }
+              }) || [],
+          }))
+          return Response.json(
+            {
+              ...matches,
+              docs: enhancedDocs,
+            },
+            { status: 200 },
+          )
+        } catch (err) {
+          console.error('Error:', err)
+          return Response.json(
+            { error: 'Failed to fetch matches with team details' },
+            { status: 500 },
+          )
         }
       },
     },
