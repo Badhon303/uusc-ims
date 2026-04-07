@@ -111,6 +111,7 @@ export const Students: CollectionConfig = {
       name: 'profilePicture',
       type: 'upload',
       relationTo: 'media',
+      hasMany: false,
     },
     {
       type: 'row',
@@ -185,6 +186,7 @@ export const Students: CollectionConfig = {
           name: 'picture',
           type: 'upload',
           relationTo: 'media',
+          hasMany: false,
         },
       ],
     },

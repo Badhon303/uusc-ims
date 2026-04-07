@@ -111,6 +111,7 @@ export const Members: CollectionConfig = {
       name: 'profilePicture',
       type: 'upload',
       relationTo: 'media',
+      hasMany: false,
     },
     {
       name: 'achievements',
@@ -135,36 +136,37 @@ export const Members: CollectionConfig = {
           name: 'picture',
           type: 'upload',
           relationTo: 'media',
+          hasMany: false,
         },
       ],
     },
   ],
   hooks: {
-    beforeRead: [
-      async ({ doc, req }) => {
-        if (doc?.user) {
-          // If already populated (depth >= 1), use it directly — no extra query
-          if (typeof doc.user === 'object') {
-            doc.memberName = doc.user.name ?? null
-          } else {
-            // Fallback for depth: 0 — manually fetch
+    beforeChange: [
+      async ({ data, req, operation }) => {
+        // Handle memberName on create/update
+        if (data?.user && (operation === 'create' || operation === 'update')) {
+          let userName = null
+
+          if (typeof data.user === 'object') {
+            userName = data.user.name ?? null
+          } else if (typeof data.user === 'number' || typeof data.user === 'string') {
             try {
               const userDoc = await req.payload.findByID({
                 collection: 'users',
-                id: doc.user,
+                id: data.user,
                 depth: 0,
               })
-              doc.memberName = userDoc?.name ?? null
+              userName = userDoc?.name ?? null
             } catch {
-              doc.memberName = null
+              userName = null
             }
           }
+
+          data.memberName = userName
         }
-        return doc
-      },
-    ],
-    beforeChange: [
-      ({ data }) => {
+
+        // Your existing payment calculations
         if (data.payments && Array.isArray(data.payments)) {
           data.totalPaid = data.payments
             .filter((p: any) => p.status === 'paid')
@@ -179,8 +181,111 @@ export const Members: CollectionConfig = {
               new Date(b.paymentMonth).getTime() - new Date(a.paymentMonth).getTime(),
           )
         }
+
         return data
       },
     ],
+    afterChange: [
+      async ({ doc, req, operation }) => {
+        // Ensure memberName is updated after change, especially if the user relationship
+        // was modified and we need to re-fetch the user name
+        if (doc?.user && (operation === 'create' || operation === 'update')) {
+          let userName = null
+
+          if (typeof doc.user === 'object') {
+            userName = doc.user.name ?? null
+          } else {
+            try {
+              const userDoc = await req.payload.findByID({
+                collection: 'users',
+                id: doc.user,
+                depth: 0,
+              })
+              userName = userDoc?.name ?? null
+            } catch {
+              userName = null
+            }
+          }
+
+          // Only update if the name has changed or is null
+          if (doc.memberName !== userName) {
+            await req.payload.update({
+              collection: 'members',
+              id: doc.id,
+              data: {
+                memberName: userName,
+              },
+              req,
+            })
+          }
+        }
+        return doc
+      },
+    ],
   },
+  // endpoints: [
+  //   {
+  //     path: '/:id/update-with-image',
+  //     method: 'patch',
+  //     handler: async (req) => {
+  //       const { payload, routeParams, file } = req
+  //       const id = routeParams?.id
+
+  //       // 1. Validate the ID type
+  //       if (!id || typeof id !== 'string') {
+  //         return Response.json({ error: 'Invalid or missing ID' }, { status: 400 })
+  //       }
+
+  //       try {
+  //         // 1. Get the current member to find the old image ID
+  //         const oldMember = await payload.findByID({
+  //           collection: 'members',
+  //           id,
+  //         })
+
+  //         let newImageId = oldMember.profilePicture
+
+  //         // 2. If a new file is attached, upload it
+  //         if (file) {
+  //           const newMedia = await payload.create({
+  //             collection: 'media',
+  //             data: {}, // Any additional media fields
+  //             file: file,
+  //           })
+  //           newImageId = newMedia.id
+  //         }
+
+  //         // 3. Update the Member with the new image and other data
+  //         // req.json() contains the other text fields sent in the request
+  //         const body = await req.json?.().catch(() => ({}))
+
+  //         const updatedMember = await payload.update({
+  //           collection: 'members',
+  //           id,
+  //           data: {
+  //             ...body,
+  //             profilePicture: newImageId,
+  //           },
+  //         })
+
+  //         // 4. Cleanup: Delete the old image if it was replaced
+  //         if (file && oldMember.profilePicture) {
+  //           const oldId =
+  //             typeof oldMember.profilePicture === 'object'
+  //               ? oldMember.profilePicture.id
+  //               : oldMember.profilePicture
+
+  //           await payload.delete({
+  //             collection: 'media',
+  //             id: oldId,
+  //           })
+  //         }
+
+  //         return Response.json(updatedMember)
+  //       } catch (err: any) {
+  //         return Response.json({ error: err.message }, { status: 500 })
+  //       }
+  //     },
+  //   },
+  // ],
 }
