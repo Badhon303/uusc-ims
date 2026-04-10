@@ -755,10 +755,15 @@ export interface TrainingSchedule {
   id: number;
   trainingGroup: number | TrainingGroup;
   coach: number | Coach;
-  courts: (number | Court)[];
-  daysOfWeek: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[];
-  startTime: string;
-  endTime: string;
+  schedules?:
+    | {
+        courts: (number | Court)[];
+        daysOfWeek: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[];
+        startTime: string;
+        endTime: string;
+        id?: string | null;
+      }[]
+    | null;
   offDays?:
     | {
         type?: ('single' | 'range') | null;
@@ -780,10 +785,15 @@ export interface TrainingSchedule {
 export interface MemberSchedule {
   id: number;
   shiftName: string;
-  courts: (number | Court)[];
-  daysOfWeek: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[];
-  startTime: string;
-  endTime: string;
+  schedules?:
+    | {
+        courts: (number | Court)[];
+        daysOfWeek: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[];
+        startTime: string;
+        endTime: string;
+        id?: string | null;
+      }[]
+    | null;
   offDays?:
     | {
         type?: ('single' | 'range') | null;
@@ -1474,10 +1484,15 @@ export interface TournamentResultsSelect<T extends boolean = true> {
 export interface TrainingSchedulesSelect<T extends boolean = true> {
   trainingGroup?: T;
   coach?: T;
-  courts?: T;
-  daysOfWeek?: T;
-  startTime?: T;
-  endTime?: T;
+  schedules?:
+    | T
+    | {
+        courts?: T;
+        daysOfWeek?: T;
+        startTime?: T;
+        endTime?: T;
+        id?: T;
+      };
   offDays?:
     | T
     | {
@@ -1498,10 +1513,15 @@ export interface TrainingSchedulesSelect<T extends boolean = true> {
  */
 export interface MemberSchedulesSelect<T extends boolean = true> {
   shiftName?: T;
-  courts?: T;
-  daysOfWeek?: T;
-  startTime?: T;
-  endTime?: T;
+  schedules?:
+    | T
+    | {
+        courts?: T;
+        daysOfWeek?: T;
+        startTime?: T;
+        endTime?: T;
+        id?: T;
+      };
   offDays?:
     | T
     | {
