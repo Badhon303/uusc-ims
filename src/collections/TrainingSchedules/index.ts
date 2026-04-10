@@ -28,48 +28,73 @@ export const TrainingSchedules: CollectionConfig = {
   },
   fields: [
     {
-      name: 'trainingGroup',
-      type: 'relationship',
-      relationTo: 'training-groups',
-      required: true,
-    },
-    {
-      name: 'coach',
-      type: 'relationship',
-      relationTo: 'coaches',
-      required: true,
-    },
-    {
-      name: 'courts',
-      type: 'relationship',
-      relationTo: 'courts',
-      required: true,
-      hasMany: true,
-    },
-    {
-      name: 'daysOfWeek',
-      type: 'select',
-      required: true,
-      hasMany: true,
-      options: [
-        { label: 'Saturday', value: 'saturday' },
-        { label: 'Sunday', value: 'sunday' },
-        { label: 'Monday', value: 'monday' },
-        { label: 'Tuesday', value: 'tuesday' },
-        { label: 'Wednesday', value: 'wednesday' },
-        { label: 'Thursday', value: 'thursday' },
-        { label: 'Friday', value: 'friday' },
+      type: 'row',
+      fields: [
+        {
+          name: 'trainingGroup',
+          type: 'relationship',
+          relationTo: 'training-groups',
+          required: true,
+        },
+        {
+          name: 'coach',
+          type: 'relationship',
+          relationTo: 'coaches',
+          required: true,
+        },
       ],
     },
     {
-      name: 'startTime',
-      type: 'date',
-      required: true,
+      type: 'row',
+      fields: [
+        {
+          name: 'courts',
+          type: 'relationship',
+          relationTo: 'courts',
+          required: true,
+          hasMany: true,
+        },
+        {
+          name: 'daysOfWeek',
+          type: 'select',
+          required: true,
+          hasMany: true,
+          options: [
+            { label: 'Saturday', value: 'saturday' },
+            { label: 'Sunday', value: 'sunday' },
+            { label: 'Monday', value: 'monday' },
+            { label: 'Tuesday', value: 'tuesday' },
+            { label: 'Wednesday', value: 'wednesday' },
+            { label: 'Thursday', value: 'thursday' },
+            { label: 'Friday', value: 'friday' },
+          ],
+        },
+      ],
     },
     {
-      name: 'endTime',
-      type: 'date',
-      required: true,
+      type: 'row',
+      fields: [
+        {
+          name: 'startTime',
+          type: 'date',
+          required: true,
+          admin: {
+            date: {
+              pickerAppearance: 'timeOnly',
+            },
+          },
+        },
+        {
+          name: 'endTime',
+          type: 'date',
+          required: true,
+          admin: {
+            date: {
+              pickerAppearance: 'timeOnly',
+            },
+          },
+        },
+      ],
     },
     {
       name: 'offDays',

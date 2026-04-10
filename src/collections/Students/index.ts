@@ -49,9 +49,9 @@ export const Students: CollectionConfig = {
     {
       name: 'studentName',
       type: 'text',
-      // admin: {
-      //   hidden: true, // Don't show it as its own field in the UI
-      // },
+      admin: {
+        hidden: true, // Don't show it as its own field in the UI
+      },
     },
     {
       type: 'row',
@@ -175,12 +175,10 @@ export const Students: CollectionConfig = {
         {
           name: 'description',
           type: 'text',
-          required: true,
         },
         {
           name: 'date',
           type: 'date',
-          required: true,
         },
         {
           name: 'picture',
@@ -235,4 +233,237 @@ export const Students: CollectionConfig = {
       },
     ],
   },
+  endpoints: [
+    {
+      path: '/update-student-profile-picture',
+      method: 'patch',
+      handler: async (req: any) => {
+        const { user, payload } = req
+
+        if (!user || user.role !== 'student') {
+          return Response.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        try {
+          // 1. Fetch current member to get the old image ID
+          const studentQuery = await payload.find({
+            collection: 'students',
+            where: { user: { equals: user.id } },
+            limit: 1,
+          })
+
+          if (!studentQuery.docs.length) {
+            return Response.json({ error: 'Student profile not found' }, { status: 404 })
+          }
+
+          const studentDoc = studentQuery.docs[0]
+          const formData = await req.formData()
+          const file = formData.get('profilePicture') as File | null
+
+          if (!file || file.size === 0) {
+            return Response.json({ error: 'No file provided' }, { status: 400 })
+          }
+
+          // 2. Upload new media
+          const arrayBuffer = await file.arrayBuffer()
+          const buffer = Buffer.from(arrayBuffer)
+
+          const uploadedMedia = await payload.create({
+            collection: 'media',
+            data: { alt: `Profile picture for ${studentDoc.studentName || user.email}` },
+            file: {
+              data: buffer,
+              mimetype: file.type,
+              name: file.name,
+              size: file.size,
+            },
+          })
+
+          const newProfilePictureId = uploadedMedia.id
+
+          // 3. Identify old image ID BEFORE updating
+          const oldProfilePicture = studentDoc.profilePicture
+          let oldMediaId: string | number | null = null
+
+          if (oldProfilePicture) {
+            oldMediaId =
+              typeof oldProfilePicture === 'object' ? oldProfilePicture.id : oldProfilePicture
+          }
+
+          // 4. Update Member collection with NEW image ID
+          const updatedStudent = await payload.update({
+            collection: 'students',
+            id: studentDoc.id,
+            data: { profilePicture: newProfilePictureId },
+            overrideAccess: true, // Prevents validation errors
+          })
+
+          // 5. Cleanup: Delete the OLD image if it exists and is different
+          if (oldMediaId && oldMediaId !== newProfilePictureId) {
+            try {
+              await payload.delete({
+                collection: 'media',
+                id: oldMediaId,
+                overrideAccess: true,
+              })
+              payload.logger.info(`Deleted old media: ${oldMediaId}`)
+            } catch (err) {
+              payload.logger.warn(`Cleanup failed for media ${oldMediaId}`)
+            }
+          }
+
+          const filteredDoc = {
+            id: updatedStudent.id,
+            studentName: updatedStudent.studentName,
+            profilePicture: updatedStudent.profilePicture,
+            updatedAt: updatedStudent.updatedAt,
+            createdAt: updatedStudent.createdAt,
+          }
+
+          return Response.json({
+            message: 'Profile picture updated successfully',
+            doc: filteredDoc,
+          })
+        } catch (error: any) {
+          payload.logger.error({ err: error }, 'Profile Update Error')
+          return Response.json({ error: error.message || 'Internal server error' }, { status: 500 })
+        }
+      },
+    },
+    {
+      path: '/achievements/:achievementId/upload-picture',
+      method: 'patch',
+      handler: async (req: any) => {
+        const { user, payload, routeParams } = req
+        const achievementId = routeParams?.achievementId
+
+        if (!user || user.role !== 'student') {
+          return Response.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        if (!achievementId) {
+          return Response.json({ error: 'Achievement ID is required' }, { status: 400 })
+        }
+
+        try {
+          // Check if req.formData is available
+          if (typeof req.formData !== 'function') {
+            console.error(Object.keys(req))
+            return Response.json(
+              {
+                error:
+                  'Form data parsing not available. Please ensure multipart/form-data is sent.',
+              },
+              { status: 400 },
+            )
+          }
+          const formData = await req.formData()
+          const file = formData.get('achievementPicture') as File | null
+
+          if (!file || file.size === 0) {
+            return Response.json({ error: 'No file provided' }, { status: 400 })
+          }
+
+          // 1. Fetch the member and find the specific achievement
+          const studentQuery = await payload.find({
+            collection: 'students',
+            where: { user: { equals: user.id } },
+            limit: 1,
+          })
+
+          if (!studentQuery.docs.length) {
+            return Response.json({ error: 'Student profile not found' }, { status: 404 })
+          }
+
+          const studentDoc = studentQuery.docs[0]
+
+          const achievements: any[] = studentDoc.achievements || []
+
+          const achievementIndex = achievements.findIndex((a: any) => a.id === achievementId)
+
+          if (achievementIndex === -1) {
+            return Response.json({ error: 'Achievement not found' }, { status: 404 })
+          }
+
+          // 2. Upload new media
+          const arrayBuffer = await file.arrayBuffer()
+          const buffer = Buffer.from(arrayBuffer)
+
+          const uploadedMedia = await payload.create({
+            collection: 'media',
+            data: { alt: `Achievement picture for ${achievements[achievementIndex].title}` },
+            file: {
+              data: buffer,
+              mimetype: file.type,
+              name: file.name,
+              size: file.size,
+            },
+          })
+
+          const newPictureId = uploadedMedia.id
+
+          // 3. Identify old image ID BEFORE updating
+          const oldPicture = achievements[achievementIndex].picture
+          let oldMediaId: string | number | null = null
+
+          if (oldPicture) {
+            oldMediaId = typeof oldPicture === 'object' ? oldPicture.id : oldPicture
+          }
+
+          // 4. Patch only the target achievement's picture in the array
+          const updatedAchievements = achievements.map((a: any, i: number) =>
+            i === achievementIndex ? { ...a, picture: newPictureId } : a,
+          )
+
+          const updatedStudent = await payload.update({
+            collection: 'students',
+            id: studentDoc.id,
+            data: { achievements: updatedAchievements },
+            overrideAccess: true,
+          })
+
+          // 5. Cleanup: Delete the OLD image if it exists and is different
+          if (oldMediaId && oldMediaId !== newPictureId) {
+            try {
+              await payload.delete({
+                collection: 'media',
+                id: oldMediaId,
+                overrideAccess: true,
+              })
+              payload.logger.info(`Deleted old achievement media: ${oldMediaId}`)
+            } catch (err) {
+              payload.logger.warn(`Cleanup failed for achievement media ${oldMediaId} ${err}`)
+            }
+          }
+
+          // Find the specific achievement we just updated to get its populated picture
+          const targetAchievement = updatedStudent.achievements?.find(
+            (a: any) => a.id === achievementId,
+          )
+
+          return Response.json({
+            message: 'Achievement picture updated successfully',
+            doc: targetAchievement?.picture || null,
+          })
+        } catch (error: any) {
+          // Additional debugging for Content-Type issues
+          if (error.message && error.message.includes('Content-Type')) {
+            console.error('Content-Type issue detected!')
+            console.error('Request Content-Type header:', req.headers?.['content-type'])
+            console.error('Request headers:', req.headers)
+            console.error('Make sure the client is sending multipart/form-data')
+          }
+
+          payload.logger.error({ err: error }, 'Achievement Picture Upload Error')
+          return Response.json(
+            {
+              error: error.message || 'Internal server error',
+              details: error.type || 'Unknown error',
+            },
+            { status: 500 },
+          )
+        }
+      },
+    },
+  ],
 }

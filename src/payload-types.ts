@@ -281,8 +281,8 @@ export interface Student {
   achievements?:
     | {
         title: string;
-        description: string;
-        date: string;
+        description?: string | null;
+        date?: string | null;
         picture?: (number | null) | Media;
         id?: string | null;
       }[]
@@ -304,8 +304,8 @@ export interface Member {
   achievements?:
     | {
         title: string;
-        description: string;
-        date: string;
+        description?: string | null;
+        date?: string | null;
         picture?: (number | null) | Media;
         id?: string | null;
       }[]
@@ -342,8 +342,8 @@ export interface Coach {
   certifications?:
     | {
         title: string;
-        description: string;
-        date: string;
+        description?: string | null;
+        date?: string | null;
         picture?: (number | null) | Media;
         id?: string | null;
       }[]
@@ -351,8 +351,8 @@ export interface Coach {
   achievements?:
     | {
         title: string;
-        description: string;
-        date: string;
+        description?: string | null;
+        date?: string | null;
         picture?: (number | null) | Media;
         id?: string | null;
       }[]
@@ -590,13 +590,13 @@ export interface StudentAttendance {
   attendances?:
     | {
         attendanceMonth?: string | null;
-        notes?: string | null;
         absentDates?:
           | {
               type?: ('single' | 'range') | null;
               date?: string | null;
               from?: string | null;
               to?: string | null;
+              reason?: string | null;
               id?: string | null;
             }[]
           | null;
@@ -781,7 +781,7 @@ export interface MemberSchedule {
   id: number;
   shiftName: string;
   courts: (number | Court)[];
-  daysOfWeek: 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+  daysOfWeek: ('saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[];
   startTime: string;
   endTime: string;
   offDays?:
@@ -1342,7 +1342,6 @@ export interface StudentAttendanceSelect<T extends boolean = true> {
     | T
     | {
         attendanceMonth?: T;
-        notes?: T;
         absentDates?:
           | T
           | {
@@ -1350,6 +1349,7 @@ export interface StudentAttendanceSelect<T extends boolean = true> {
               date?: T;
               from?: T;
               to?: T;
+              reason?: T;
               id?: T;
             };
         id?: T;

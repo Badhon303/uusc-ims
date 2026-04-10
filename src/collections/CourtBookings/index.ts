@@ -103,6 +103,11 @@ export const CourtBookings: CollectionConfig = {
       relationTo: 'users',
       required: true,
       hasMany: false,
+      defaultValue: ({ req }) => req.user?.id,
+      access: {
+        update: ({ req }) => req.user?.role === 'admin' || req.user?.role === 'manager',
+        create: ({ req }) => req.user?.role === 'admin' || req.user?.role === 'manager',
+      },
     },
     {
       name: 'bookings',
@@ -143,21 +148,6 @@ export const CourtBookings: CollectionConfig = {
               name: 'bookingDate',
               type: 'date',
               required: true,
-              validate: (val: Date | null | undefined) => {
-                if (!val) return 'Booking date is required'
-
-                const selectedDate = new Date(val)
-                const today = new Date()
-
-                // Normalize to midnight for date-only comparison
-                today.setHours(0, 0, 0, 0)
-                selectedDate.setHours(0, 0, 0, 0)
-
-                if (selectedDate < today) {
-                  return 'You cannot book a date in the past.'
-                }
-                return true
-              },
             },
             {
               name: 'startTime',

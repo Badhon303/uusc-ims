@@ -125,12 +125,10 @@ export const Members: CollectionConfig = {
         {
           name: 'description',
           type: 'text',
-          required: true,
         },
         {
           name: 'date',
           type: 'date',
-          required: true,
         },
         {
           name: 'picture',
