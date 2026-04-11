@@ -119,52 +119,62 @@ export const StudentPayments: CollectionConfig = {
       },
       fields: [
         {
-          name: 'paymentMonth',
-          type: 'date',
-          admin: {
-            date: {
-              displayFormat: 'MMMM yyyy',
-              pickerAppearance: 'monthOnly',
+          type: 'row',
+          fields: [
+            {
+              name: 'paymentMonth',
+              type: 'date',
+              admin: {
+                date: {
+                  displayFormat: 'MMMM yyyy',
+                  pickerAppearance: 'monthOnly',
+                },
+              },
+              defaultValue: () => new Date(),
             },
-          },
-          defaultValue: () => new Date(),
-        },
-        {
-          name: 'amount',
-          type: 'number',
-          required: true,
-          admin: {
-            readOnly: true,
-          },
-          defaultValue: async ({ req }) => {
-            const pkg = await getMemberPackage(req)
-            return pkg?.price || 0
-          },
-        },
-        {
-          name: 'paymentMethod',
-          type: 'select',
-          required: true,
-          options: [
-            { label: 'Cash', value: 'cash' },
-            { label: 'Mobile Banking', value: 'mobile-banking' },
-            { label: 'Card', value: 'card' },
+            {
+              name: 'amount',
+              type: 'number',
+              required: true,
+              admin: {
+                readOnly: true,
+              },
+              defaultValue: async ({ req }) => {
+                const pkg = await getMemberPackage(req)
+                return pkg?.price || 0
+              },
+            },
+            {
+              name: 'status',
+              type: 'select',
+              required: true,
+              options: [
+                { label: 'Paid', value: 'paid' },
+                { label: 'Unpaid', value: 'unpaid' },
+              ],
+              defaultValue: 'unpaid',
+            },
           ],
-          defaultValue: 'cash',
         },
         {
-          name: 'transactionRef',
-          type: 'text',
-        },
-        {
-          name: 'status',
-          type: 'select',
-          required: true,
-          options: [
-            { label: 'Paid', value: 'paid' },
-            { label: 'Unpaid', value: 'unpaid' },
+          type: 'row',
+          fields: [
+            {
+              name: 'paymentMethod',
+              type: 'select',
+              required: true,
+              options: [
+                { label: 'Cash', value: 'cash' },
+                { label: 'Mobile Banking', value: 'mobile-banking' },
+                { label: 'Card', value: 'card' },
+              ],
+              defaultValue: 'cash',
+            },
+            {
+              name: 'transactionRef',
+              type: 'text',
+            },
           ],
-          defaultValue: 'unpaid',
         },
       ],
     },

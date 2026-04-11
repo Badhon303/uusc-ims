@@ -39,31 +39,36 @@ export const Expenditures: CollectionConfig = {
       required: true,
     },
     {
-      name: 'type',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Maintenance', value: 'maintenance' },
-        { label: 'UtilityBill', value: 'utility-bill' },
-        { label: 'EquipmentPurchase', value: 'equipment-purchase' },
-        { label: 'TournamentExpenses', value: 'tournament-expenses' },
-        { label: 'IndoorFacility', value: 'indoor-facility' },
-        { label: 'Miscellaneous', value: 'miscellaneous' },
-      ],
-    },
-    {
-      name: 'amount',
-      type: 'number',
-      required: true,
-    },
-    {
-      name: 'date',
-      type: 'date',
-      required: true,
-    },
-    {
       name: 'description',
       type: 'text',
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'type',
+          type: 'select',
+          required: true,
+          options: [
+            { label: 'Maintenance', value: 'maintenance' },
+            { label: 'UtilityBill', value: 'utility-bill' },
+            { label: 'EquipmentPurchase', value: 'equipment-purchase' },
+            { label: 'TournamentExpenses', value: 'tournament-expenses' },
+            { label: 'IndoorFacility', value: 'indoor-facility' },
+            { label: 'Miscellaneous', value: 'miscellaneous' },
+          ],
+        },
+        {
+          name: 'amount',
+          type: 'number',
+          required: true,
+        },
+        {
+          name: 'date',
+          type: 'date',
+          required: true,
+        },
+      ],
     },
   ],
   endpoints: [

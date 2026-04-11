@@ -87,37 +87,42 @@ export const MemberSchedules: CollectionConfig = {
       type: 'array',
       fields: [
         {
-          name: 'type',
-          type: 'select',
-          options: [
-            { label: 'Single Day', value: 'single' },
-            { label: 'Range', value: 'range' },
+          type: 'row',
+          fields: [
+            {
+              name: 'type',
+              type: 'select',
+              options: [
+                { label: 'Single Day', value: 'single' },
+                { label: 'Range', value: 'range' },
+              ],
+              defaultValue: 'single',
+            },
+            {
+              name: 'date',
+              type: 'date',
+              admin: {
+                condition: (_, siblingData) => siblingData.type === 'single',
+                date: { pickerAppearance: 'dayOnly' },
+              },
+            },
+            {
+              name: 'from',
+              type: 'date',
+              admin: {
+                condition: (_, siblingData) => siblingData.type === 'range',
+                date: { pickerAppearance: 'dayOnly' },
+              },
+            },
+            {
+              name: 'to',
+              type: 'date',
+              admin: {
+                condition: (_, siblingData) => siblingData.type === 'range',
+                date: { pickerAppearance: 'dayOnly' },
+              },
+            },
           ],
-          defaultValue: 'single',
-        },
-        {
-          name: 'date',
-          type: 'date',
-          admin: {
-            condition: (_, siblingData) => siblingData.type === 'single',
-            date: { pickerAppearance: 'dayOnly' },
-          },
-        },
-        {
-          name: 'from',
-          type: 'date',
-          admin: {
-            condition: (_, siblingData) => siblingData.type === 'range',
-            date: { pickerAppearance: 'dayOnly' },
-          },
-        },
-        {
-          name: 'to',
-          type: 'date',
-          admin: {
-            condition: (_, siblingData) => siblingData.type === 'range',
-            date: { pickerAppearance: 'dayOnly' },
-          },
         },
         {
           name: 'reason',

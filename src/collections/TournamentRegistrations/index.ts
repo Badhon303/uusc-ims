@@ -34,116 +34,130 @@ export const TournamentRegistrations: CollectionConfig = {
   },
   fields: [
     {
-      name: 'tournament',
-      type: 'relationship',
-      relationTo: 'tournaments',
-      required: true,
-      filterOptions: () => {
-        return {
-          status: {
-            equals: 'open',
-          },
-        }
-      },
-      validate: async (val: any, { data, req, operation }: any) => {
-        // 1. Basic required check (if not already handled by 'required: true')
-        if (!val) return 'Tournament selection is required.'
-
-        // 2. Only perform heavy lookups during creation or if the tournament is being changed
-        if (operation === 'create' || operation === 'update') {
-          try {
-            // Fetch tournament status
-            const tournament = await req.payload.findByID({
-              collection: 'tournaments',
-              id: val,
-              depth: 0, // Keeps it fast
-            })
-
-            if (!tournament) return 'Selected tournament not found.'
-
-            // Throw error if status is not open
-            if (tournament.status !== 'open') {
-              return 'Registration is closed for this tournament.'
+      type: 'row',
+      fields: [
+        {
+          name: 'tournament',
+          type: 'relationship',
+          relationTo: 'tournaments',
+          required: true,
+          filterOptions: () => {
+            return {
+              status: {
+                equals: 'open',
+              },
             }
+          },
+          validate: async (val: any, { data, req, operation }: any) => {
+            // 1. Basic required check (if not already handled by 'required: true')
+            if (!val) return 'Tournament selection is required.'
 
-            // 3. Check for Duplicate Registration
-            // Note: 'data.user' might be an ID or an object depending on the context
-            const userId = typeof data?.user === 'object' ? data.user.id : data?.user
+            // 2. Only perform heavy lookups during creation or if the tournament is being changed
+            if (operation === 'create' || operation === 'update') {
+              try {
+                // Fetch tournament status
+                const tournament = await req.payload.findByID({
+                  collection: 'tournaments',
+                  id: val,
+                  depth: 0, // Keeps it fast
+                })
 
-            if (userId) {
-              const existing = await req.payload.find({
-                collection: 'tournament-registrations',
-                depth: 0,
-                where: {
-                  and: [{ tournament: { equals: val } }, { user: { equals: userId } }],
-                },
-                // If updating, ignore the current document itself
-                ...(operation === 'update' && data.id
-                  ? {
-                      where: {
-                        and: [
-                          { tournament: { equals: val } },
-                          { user: { equals: userId } },
-                          { id: { not_equals: data.id } },
-                        ],
-                      },
-                    }
-                  : {}),
-                limit: 1,
-              })
+                if (!tournament) return 'Selected tournament not found.'
 
-              if (existing.totalDocs > 0) {
-                return 'This user is already registered for this tournament.'
+                // Throw error if status is not open
+                if (tournament.status !== 'open') {
+                  return 'Registration is closed for this tournament.'
+                }
+
+                // 3. Check for Duplicate Registration
+                // Note: 'data.user' might be an ID or an object depending on the context
+                const userId = typeof data?.user === 'object' ? data.user.id : data?.user
+
+                if (userId) {
+                  const existing = await req.payload.find({
+                    collection: 'tournament-registrations',
+                    depth: 0,
+                    where: {
+                      and: [{ tournament: { equals: val } }, { user: { equals: userId } }],
+                    },
+                    // If updating, ignore the current document itself
+                    ...(operation === 'update' && data.id
+                      ? {
+                          where: {
+                            and: [
+                              { tournament: { equals: val } },
+                              { user: { equals: userId } },
+                              { id: { not_equals: data.id } },
+                            ],
+                          },
+                        }
+                      : {}),
+                    limit: 1,
+                  })
+
+                  if (existing.totalDocs > 0) {
+                    return 'This user is already registered for this tournament.'
+                  }
+                }
+              } catch (err) {
+                return 'An error occurred during validation.'
               }
             }
-          } catch (err) {
-            return 'An error occurred during validation.'
-          }
-        }
 
-        return true
-      },
+            return true
+          },
+        },
+        {
+          name: 'user',
+          type: 'relationship',
+          relationTo: 'users',
+          required: true,
+          defaultValue: ({ req }) => {
+            return req.user?.id
+          },
+          access: {
+            create: ({ req }) => {
+              return (
+                req.user?.role === 'admin' ||
+                req.user?.role === 'manager' ||
+                req.user?.role === 'coach'
+              )
+            },
+          },
+        },
+      ],
     },
     {
-      name: 'user',
-      type: 'relationship',
-      relationTo: 'users',
-      required: true,
-      defaultValue: ({ req }) => {
-        return req.user?.id
-      },
-      access: {
-        create: ({ req }) => {
-          return (
-            req.user?.role === 'admin' || req.user?.role === 'manager' || req.user?.role === 'coach'
-          )
+      type: 'row',
+      fields: [
+        {
+          name: 'registrationDate',
+          type: 'date',
+          defaultValue: new Date().toISOString(),
+          access: {
+            create: ({ req }) => {
+              return (
+                req.user?.role === 'admin' ||
+                req.user?.role === 'manager' ||
+                req.user?.role === 'coach'
+              )
+            },
+          },
         },
-      },
-    },
-    {
-      name: 'registrationDate',
-      type: 'date',
-      defaultValue: new Date().toISOString(),
-      access: {
-        create: ({ req }) => {
-          return (
-            req.user?.role === 'admin' || req.user?.role === 'manager' || req.user?.role === 'coach'
-          )
+        {
+          name: 'paymentStatus',
+          type: 'select',
+          defaultValue: 'unpaid',
+          access: {
+            create: ({ req }) => {
+              return req.user?.role === 'admin' || req.user?.role === 'manager'
+            },
+          },
+          options: [
+            { label: 'Paid', value: 'paid' },
+            { label: 'Unpaid', value: 'unpaid' },
+          ],
         },
-      },
-    },
-    {
-      name: 'paymentStatus',
-      type: 'select',
-      defaultValue: 'unpaid',
-      access: {
-        create: ({ req }) => {
-          return req.user?.role === 'admin' || req.user?.role === 'manager'
-        },
-      },
-      options: [
-        { label: 'Paid', value: 'paid' },
-        { label: 'Unpaid', value: 'unpaid' },
       ],
     },
   ],

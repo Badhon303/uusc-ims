@@ -175,8 +175,8 @@ export interface User {
   id: number;
   name: string;
   contactNumber?: string | null;
-  address?: string | null;
   role: 'admin' | 'manager' | 'coach' | 'member' | 'student' | 'guest';
+  address?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -373,9 +373,9 @@ export interface CoachSalary {
     | {
         paymentMonth?: string | null;
         salary: number;
+        status: 'paid' | 'unpaid';
         paymentMethod: 'cash' | 'mobile-banking' | 'card';
         transactionRef?: string | null;
-        status: 'paid' | 'unpaid';
         id?: string | null;
       }[]
     | null;
@@ -398,9 +398,9 @@ export interface Manager {
     | {
         paymentMonth?: string | null;
         salary: number;
+        status: 'paid' | 'unpaid';
         paymentMethod: 'cash' | 'mobile-banking' | 'card';
         transactionRef?: string | null;
-        status: 'paid' | 'unpaid';
         id?: string | null;
       }[]
     | null;
@@ -425,9 +425,9 @@ export interface Staff {
     | {
         paymentMonth?: string | null;
         salary: number;
+        status: 'paid' | 'unpaid';
         paymentMethod: 'cash' | 'mobile-banking' | 'card';
         transactionRef?: string | null;
-        status: 'paid' | 'unpaid';
         id?: string | null;
       }[]
     | null;
@@ -441,6 +441,7 @@ export interface Staff {
 export interface Expenditure {
   id: number;
   title: string;
+  description?: string | null;
   type:
     | 'maintenance'
     | 'utility-bill'
@@ -450,7 +451,6 @@ export interface Expenditure {
     | 'miscellaneous';
   amount: number;
   date: string;
-  description?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -469,9 +469,9 @@ export interface MemberPayment {
     | {
         paymentMonth?: string | null;
         amount: number;
+        status: 'paid' | 'unpaid';
         paymentMethod: 'cash' | 'mobile-banking' | 'card';
         transactionRef?: string | null;
-        status: 'paid' | 'unpaid';
         id?: string | null;
       }[]
     | null;
@@ -493,9 +493,9 @@ export interface StudentPayment {
     | {
         paymentMonth?: string | null;
         amount: number;
+        status: 'paid' | 'unpaid';
         paymentMethod: 'cash' | 'mobile-banking' | 'card';
         transactionRef?: string | null;
-        status: 'paid' | 'unpaid';
         id?: string | null;
       }[]
     | null;
@@ -540,8 +540,9 @@ export interface CourtBooking {
 export interface Sponsor {
   id: number;
   name: string;
-  picture?: (number | null) | Media;
   contactNumber: string;
+  description?: string | null;
+  picture?: (number | null) | Media;
   amounts?:
     | {
         amount: number;
@@ -549,7 +550,6 @@ export interface Sponsor {
         id?: string | null;
       }[]
     | null;
-  description?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -573,8 +573,8 @@ export interface OtherIncome {
 export interface TrainingGroup {
   id: number;
   name: string;
-  coach: number | Coach;
   students: (number | Student)[];
+  coach: number | Coach;
   skillLevel: 'beginner' | 'intermediate' | 'advanced';
   status: 'active' | 'pending' | 'inactive';
   updatedAt: string;
@@ -988,8 +988,8 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   contactNumber?: T;
-  address?: T;
   role?: T;
+  address?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1170,9 +1170,9 @@ export interface CoachSalariesSelect<T extends boolean = true> {
     | {
         paymentMonth?: T;
         salary?: T;
+        status?: T;
         paymentMethod?: T;
         transactionRef?: T;
-        status?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -1194,9 +1194,9 @@ export interface ManagersSelect<T extends boolean = true> {
     | {
         paymentMonth?: T;
         salary?: T;
+        status?: T;
         paymentMethod?: T;
         transactionRef?: T;
-        status?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -1220,9 +1220,9 @@ export interface StaffsSelect<T extends boolean = true> {
     | {
         paymentMonth?: T;
         salary?: T;
+        status?: T;
         paymentMethod?: T;
         transactionRef?: T;
-        status?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -1234,10 +1234,10 @@ export interface StaffsSelect<T extends boolean = true> {
  */
 export interface ExpendituresSelect<T extends boolean = true> {
   title?: T;
+  description?: T;
   type?: T;
   amount?: T;
   date?: T;
-  description?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1256,9 +1256,9 @@ export interface MemberPaymentsSelect<T extends boolean = true> {
     | {
         paymentMonth?: T;
         amount?: T;
+        status?: T;
         paymentMethod?: T;
         transactionRef?: T;
-        status?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -1279,9 +1279,9 @@ export interface StudentPaymentsSelect<T extends boolean = true> {
     | {
         paymentMonth?: T;
         amount?: T;
+        status?: T;
         paymentMethod?: T;
         transactionRef?: T;
-        status?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -1304,8 +1304,9 @@ export interface BookingPaymentsSelect<T extends boolean = true> {
  */
 export interface SponsorsSelect<T extends boolean = true> {
   name?: T;
-  picture?: T;
   contactNumber?: T;
+  description?: T;
+  picture?: T;
   amounts?:
     | T
     | {
@@ -1313,7 +1314,6 @@ export interface SponsorsSelect<T extends boolean = true> {
         date?: T;
         id?: T;
       };
-  description?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1335,8 +1335,8 @@ export interface OtherIncomesSelect<T extends boolean = true> {
  */
 export interface TrainingGroupsSelect<T extends boolean = true> {
   name?: T;
-  coach?: T;
   students?: T;
+  coach?: T;
   skillLevel?: T;
   status?: T;
   updatedAt?: T;

@@ -52,76 +52,81 @@ export const Users: CollectionConfig = {
     // Email added by default
     // Add more fields as needed
     {
-      name: 'name',
-      type: 'text',
-      label: 'Name',
-      unique: true,
-      required: true,
-      maxLength: 99,
-    },
-    {
-      name: 'contactNumber',
-      label: 'Contact Number',
-      type: 'text',
-      validate: (val: any) => {
-        if (!val) return true
-        // If it's not a string (null/undefined), let 'required: true' handle it
-        if (typeof val !== 'string') return true
-        const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/
-        if (!bdPhoneRegex.test(val)) {
-          return 'Please enter a valid Bangladesh contact number (e.g., 01712345678 or +8801712345678)'
-        }
-        return true
-      },
-      admin: {
-        placeholder: '017XXXXXXXX',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name',
+          unique: true,
+          required: true,
+          maxLength: 99,
+        },
+        {
+          name: 'contactNumber',
+          label: 'Contact Number',
+          type: 'text',
+          validate: (val: any) => {
+            if (!val) return true
+            // If it's not a string (null/undefined), let 'required: true' handle it
+            if (typeof val !== 'string') return true
+            const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/
+            if (!bdPhoneRegex.test(val)) {
+              return 'Please enter a valid Bangladesh contact number (e.g., 01712345678 or +8801712345678)'
+            }
+            return true
+          },
+          admin: {
+            placeholder: '017XXXXXXXX',
+          },
+        },
+        {
+          name: 'role',
+          type: 'select',
+          access: {
+            update: ({ req }) => {
+              return req.user?.role === 'admin'
+            },
+            create: ({ req }) => {
+              return req.user?.role === 'admin'
+            },
+          },
+          required: true,
+          saveToJWT: true,
+          options: [
+            {
+              label: 'Admin',
+              value: 'admin',
+            },
+            {
+              label: 'Manager',
+              value: 'manager',
+            },
+            {
+              label: 'Coach',
+              value: 'coach',
+            },
+            {
+              label: 'Member',
+              value: 'member',
+            },
+            {
+              label: 'Student',
+              value: 'student',
+            },
+            {
+              label: 'Guest',
+              value: 'guest',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'address',
       type: 'text',
       label: 'Address',
       maxLength: 999,
-    },
-    {
-      name: 'role',
-      type: 'select',
-      access: {
-        update: ({ req }) => {
-          return req.user?.role === 'admin'
-        },
-        create: ({ req }) => {
-          return req.user?.role === 'admin'
-        },
-      },
-      required: true,
-      saveToJWT: true,
-      options: [
-        {
-          label: 'Admin',
-          value: 'admin',
-        },
-        {
-          label: 'Manager',
-          value: 'manager',
-        },
-        {
-          label: 'Coach',
-          value: 'coach',
-        },
-        {
-          label: 'Member',
-          value: 'member',
-        },
-        {
-          label: 'Student',
-          value: 'student',
-        },
-        {
-          label: 'Guest',
-          value: 'guest',
-        },
-      ],
     },
   ],
   hooks: {

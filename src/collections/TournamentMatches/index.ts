@@ -72,20 +72,25 @@ export const TournamentMatches: CollectionConfig = {
           ],
         },
         {
-          name: 'court',
-          type: 'relationship',
-          relationTo: 'courts',
-          required: true,
-        },
-        {
-          name: 'scheduledTime',
-          type: 'date',
-          admin: {
-            date: {
-              pickerAppearance: 'dayAndTime',
+          type: 'row',
+          fields: [
+            {
+              name: 'court',
+              type: 'relationship',
+              relationTo: 'courts',
+              required: true,
             },
-          },
-          required: true,
+            {
+              name: 'scheduledTime',
+              type: 'date',
+              admin: {
+                date: {
+                  pickerAppearance: 'dayAndTime',
+                },
+              },
+              required: true,
+            },
+          ],
         },
         {
           name: 'scores',

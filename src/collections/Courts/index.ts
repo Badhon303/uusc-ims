@@ -19,21 +19,26 @@ export const Courts: CollectionConfig = {
   },
   fields: [
     {
-      name: 'name',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'peakHourPrice',
-      type: 'number',
-      required: true,
-      defaultValue: 0,
-    },
-    {
-      name: 'normalHourPrice',
-      type: 'number',
-      required: true,
-      defaultValue: 0,
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'peakHourPrice',
+          type: 'number',
+          required: true,
+          defaultValue: 0,
+        },
+        {
+          name: 'normalHourPrice',
+          type: 'number',
+          required: true,
+          defaultValue: 0,
+        },
+      ],
     },
   ],
 }

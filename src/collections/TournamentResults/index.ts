@@ -50,15 +50,20 @@ export const TournamentResults: CollectionConfig = {
           },
         },
         {
-          name: 'position',
-          type: 'number',
-          unique: true,
-          required: true,
-        },
-        {
-          name: 'prizeAmount',
-          type: 'number',
-          required: true,
+          type: 'row',
+          fields: [
+            {
+              name: 'position',
+              type: 'number',
+              unique: true,
+              required: true,
+            },
+            {
+              name: 'prizeAmount',
+              type: 'number',
+              required: true,
+            },
+          ],
         },
       ],
     },

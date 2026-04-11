@@ -183,4 +183,113 @@ export const CourtBookings: CollectionConfig = {
       },
     },
   ],
+  endpoints: [
+    {
+      path: '/weekly-schedule',
+      method: 'get',
+      handler: async (req) => {
+        const { weekOffset = 0 }: any = req.query
+
+        const offset = parseInt(weekOffset) || 0
+
+        // 🧠 Normalize date
+        const normalizeDate = (date: Date) => {
+          const d = new Date(date)
+          d.setHours(0, 0, 0, 0)
+          return d
+        }
+
+        const today = new Date()
+
+        // 🗓️ Calculate week start based on offset
+        const weekStart = new Date(today)
+        weekStart.setDate(today.getDate() + offset * 7)
+        const normalizedWeekStart = normalizeDate(weekStart)
+
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekStart.getDate() + 6)
+        const normalizedWeekEnd = normalizeDate(weekEnd)
+
+        // 🗓️ Build week map
+        const weekMap: Record<string, { date: string; bookings: any[] }> = {}
+
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+        days.forEach((dayName, index) => {
+          const date = new Date(weekStart)
+          const diff = index - weekStart.getDay()
+          date.setDate(weekStart.getDate() + diff)
+
+          weekMap[dayName] = {
+            date: date.toISOString().split('T')[0],
+            bookings: [],
+          }
+        })
+
+        // 🔍 Fetch ONLY confirmed bookings within week range
+        const result = await req.payload.find({
+          collection: 'court-bookings',
+          where: {
+            and: [
+              {
+                confirmed: {
+                  equals: true, // ✅ only confirmed bookings
+                },
+              },
+              {
+                'bookings.bookingDate': {
+                  greater_than_equal: normalizedWeekStart.toISOString(),
+                  less_than_equal: normalizedWeekEnd.toISOString(),
+                },
+              },
+            ],
+          },
+          depth: 2,
+          limit: 0,
+          pagination: false,
+        })
+
+        const docs = result.docs || []
+
+        // 🔁 Map bookings into weekMap
+        docs.forEach((doc: any) => {
+          // 🔒 Optional safety (extra protection)
+          if (!doc.confirmed) return
+
+          const user = doc.user
+
+          doc.bookings?.forEach((booking: any) => {
+            const bookingDate = new Date(booking.bookingDate)
+            const dayName = days[bookingDate.getDay()]
+
+            if (!weekMap[dayName]) return
+
+            weekMap[dayName].bookings.push({
+              bookingId: doc.id,
+              title: doc.title,
+              user,
+              courts: booking.courts,
+              startTime: booking.startTime,
+              endTime: booking.endTime,
+              confirmed: doc.confirmed,
+            })
+          })
+        })
+
+        // 🔽 Sort bookings by time
+        Object.keys(weekMap).forEach((day) => {
+          weekMap[day].bookings.sort(
+            (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+          )
+        })
+
+        return Response.json({
+          weekOffset: offset,
+          weekStart: normalizedWeekStart,
+          weekEnd: normalizedWeekEnd,
+          weekSchedule: weekMap,
+        })
+      },
+    },
+  ],
 }

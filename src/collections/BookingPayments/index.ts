@@ -31,44 +31,51 @@ export const BookingPayments: CollectionConfig = {
   },
   fields: [
     {
-      name: 'booking',
-      type: 'relationship',
-      relationTo: 'court-bookings',
-      required: true,
-      unique: true,
-      hasMany: false,
-      filterOptions: async ({ req }) => {
-        // 1. Get all booking_ids already used in booking-payments
-        const existingPayments = await req.payload.find({
-          collection: 'booking-payments',
-          depth: 0,
-          pagination: false,
-        })
+      type: 'row',
+      fields: [
+        {
+          name: 'booking',
+          type: 'relationship',
+          relationTo: 'court-bookings',
+          required: true,
+          unique: true,
+          hasMany: false,
+          filterOptions: async ({ req }) => {
+            // 1. Get all booking_ids already used in booking-payments
+            const existingPayments = await req.payload.find({
+              collection: 'booking-payments',
+              depth: 0,
+              pagination: false,
+            })
 
-        const usedBookingIds = existingPayments.docs.map((doc: any) => doc.booking).filter(Boolean)
+            const usedBookingIds = existingPayments.docs
+              .map((doc: any) => doc.booking)
+              .filter(Boolean)
 
-        // 2. Return filter to exclude them
-        return {
-          id: {
-            not_in: usedBookingIds.length ? usedBookingIds : ['none'], // prevent empty array issue
+            // 2. Return filter to exclude them
+            return {
+              id: {
+                not_in: usedBookingIds.length ? usedBookingIds : ['none'], // prevent empty array issue
+              },
+            }
           },
-        }
-      },
-    },
-    {
-      name: 'totalAmount',
-      type: 'number',
-      required: true,
-      defaultValue: 0,
-    },
-    {
-      name: 'paymentStatus',
-      type: 'select',
-      required: true,
-      defaultValue: 'unpaid',
-      options: [
-        { label: 'Paid', value: 'paid' },
-        { label: 'Unpaid', value: 'unpaid' },
+        },
+        {
+          name: 'totalAmount',
+          type: 'number',
+          required: true,
+          defaultValue: 0,
+        },
+        {
+          name: 'paymentStatus',
+          type: 'select',
+          required: true,
+          defaultValue: 'unpaid',
+          options: [
+            { label: 'Paid', value: 'paid' },
+            { label: 'Unpaid', value: 'unpaid' },
+          ],
+        },
       ],
     },
   ],

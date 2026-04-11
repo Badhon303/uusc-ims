@@ -19,24 +19,29 @@ export const Packages: CollectionConfig = {
   },
   fields: [
     {
-      name: 'title',
-      type: 'text',
-      required: true,
-      admin: {
-        readOnly: true,
-      },
-    },
-    {
-      name: 'price',
-      label: 'Price Per Month (BDT)',
-      type: 'number',
-      required: true,
-    },
-    {
-      name: 'registrationFee',
-      label: 'Registration Fee (BDT)',
-      type: 'number',
-      required: true,
+      type: 'row',
+      fields: [
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+          admin: {
+            readOnly: true,
+          },
+        },
+        {
+          name: 'price',
+          label: 'Price Per Month (BDT)',
+          type: 'number',
+          required: true,
+        },
+        {
+          name: 'registrationFee',
+          label: 'Registration Fee (BDT)',
+          type: 'number',
+          required: true,
+        },
+      ],
     },
     {
       name: 'features',

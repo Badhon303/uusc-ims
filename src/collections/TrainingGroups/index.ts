@@ -32,12 +32,6 @@ export const TrainingGroups: CollectionConfig = {
       required: true,
     },
     {
-      name: 'coach',
-      type: 'relationship',
-      relationTo: 'coaches',
-      required: true,
-    },
-    {
       name: 'students',
       type: 'relationship',
       relationTo: 'students',
@@ -47,6 +41,12 @@ export const TrainingGroups: CollectionConfig = {
     {
       type: 'row',
       fields: [
+        {
+          name: 'coach',
+          type: 'relationship',
+          relationTo: 'coaches',
+          required: true,
+        },
         {
           name: 'skillLevel',
           type: 'select',

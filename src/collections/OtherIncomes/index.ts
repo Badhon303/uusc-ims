@@ -34,20 +34,25 @@ export const OtherIncomes: CollectionConfig = {
   },
   fields: [
     {
-      name: 'title',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'amount',
-      type: 'number',
-      required: true,
-    },
-    {
-      name: 'date',
-      type: 'date',
-      required: true,
-      defaultValue: () => new Date(),
+      type: 'row',
+      fields: [
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'amount',
+          type: 'number',
+          required: true,
+        },
+        {
+          name: 'date',
+          type: 'date',
+          required: true,
+          defaultValue: () => new Date(),
+        },
+      ],
     },
     {
       name: 'description',
