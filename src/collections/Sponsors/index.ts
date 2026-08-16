@@ -1,6 +1,8 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
 import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const Sponsors: CollectionConfig = {
   slug: 'sponsors',
@@ -16,7 +18,7 @@ export const Sponsors: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: isAdmin,
     update: ({ req: { user } }) => {
       if (!user) return false
@@ -107,6 +109,12 @@ export const Sponsors: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           // ✅ Execute query
           const result = await req.payload.db.drizzle.execute(sql`
               SELECT
@@ -118,6 +126,7 @@ export const Sponsors: CollectionConfig = {
                 ON sa._parent_id = s.id
 
               WHERE 1=1
+              ${tenantId ? sql`AND s.tenant_id = ${tenantId}` : sql``}
               ${start && end ? sql`AND sa.date >= ${start} AND sa.date <= ${end}` : sql``}
             `)
 

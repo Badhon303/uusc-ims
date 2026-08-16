@@ -1,4 +1,6 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { CollectionConfig } from 'payload'
+import { tenantScopedUserFilter } from '@/utils/access/tenantFilterOptions'
 
 export const TournamentTeams: CollectionConfig = {
   slug: 'tournament-teams',
@@ -11,7 +13,7 @@ export const TournamentTeams: CollectionConfig = {
     group: '🏆 Tournament',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager', 'coach'].includes(user.role)
@@ -59,6 +61,7 @@ export const TournamentTeams: CollectionConfig = {
           relationTo: 'users',
           required: true,
           hasMany: true,
+          filterOptions: ({ req }) => tenantScopedUserFilter(req),
           validate: (value: any) => {
             if (!value || value.length === 0) {
               return 'At least one player is required'

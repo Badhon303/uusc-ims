@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
 
@@ -12,7 +13,7 @@ export const StudentAttendance: CollectionConfig = {
     group: '⛹️ Training',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'coach'].includes(user.role)
@@ -138,6 +139,8 @@ export const StudentAttendance: CollectionConfig = {
           collection: 'student-attendance',
           id: studentId,
           depth: 2, // Ensure student and user details are fetched
+          req,
+          overrideAccess: false,
         })
 
         if (!record) {

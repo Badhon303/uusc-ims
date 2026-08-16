@@ -1,7 +1,9 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
 import { getMemberPackage } from '../Members'
 import { sql } from 'drizzle-orm'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const getStudentPackage = async (req: any) => {
   // ✅ If already fetched, reuse
@@ -36,7 +38,7 @@ export const StudentPayments: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager'].includes(user.role)
@@ -218,13 +220,21 @@ export const StudentPayments: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
               SELECT 
                 -- 1. Sum Registration Fees (Using a subquery to avoid duplicates from joins)
                 (
                   SELECT COALESCE(SUM(registration_fee), 0)
                   FROM student_payments
-                  WHERE ${start ? sql`registration_date >= ${start} AND registration_date <= ${end}` : sql`TRUE`}
+                  WHERE 1=1
+                  ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
+                  ${start ? sql`AND registration_date >= ${start} AND registration_date <= ${end}` : sql``}
                ) as "studentRegistrationFee",
  
                -- 2. Sum Subscription Fees (Paid)
@@ -246,6 +256,9 @@ export const StudentPayments: CollectionConfig = {
                ), 0) as "totalSubscriptionDue"
  
              FROM student_payments_payments p
+             INNER JOIN student_payments sp ON sp.id = p._parent_id
+             WHERE 1=1
+             ${tenantId ? sql`AND sp.tenant_id = ${tenantId}` : sql``}
            `)
 
           const data = result.rows?.[0] || {}

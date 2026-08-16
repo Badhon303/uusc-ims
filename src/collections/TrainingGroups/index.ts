@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import type { CollectionConfig } from 'payload'
 
 export const TrainingGroups: CollectionConfig = {
@@ -11,7 +12,7 @@ export const TrainingGroups: CollectionConfig = {
     group: '⛹️ Training',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager', 'coach'].includes(user.role)

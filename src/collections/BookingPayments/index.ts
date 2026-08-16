@@ -1,5 +1,7 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { sql } from 'drizzle-orm'
 import { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const BookingPayments: CollectionConfig = {
   slug: 'booking-payments',
@@ -15,7 +17,7 @@ export const BookingPayments: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager'].includes(user.role)
@@ -41,11 +43,14 @@ export const BookingPayments: CollectionConfig = {
           unique: true,
           hasMany: false,
           filterOptions: async ({ req }) => {
-            // 1. Get all booking_ids already used in booking-payments
+            // 1. Get all booking_ids already used in booking-payments (tenant-scoped)
             const existingPayments = await req.payload.find({
               collection: 'booking-payments',
               depth: 0,
+              limit: 500,
               pagination: false,
+              overrideAccess: false,
+              select: { booking: true },
             })
 
             const usedBookingIds = existingPayments.docs
@@ -99,6 +104,12 @@ export const BookingPayments: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           // We join booking_payments with the court_bookings array table
           const result = await req.payload.db.drizzle.execute(sql`
           SELECT
@@ -115,6 +126,7 @@ export const BookingPayments: CollectionConfig = {
           FROM booking_payments bp
           INNER JOIN court_bookings_bookings cbb ON cbb._parent_id = bp.booking_id
           WHERE 1=1
+          ${tenantId ? sql` AND bp.tenant_id = ${tenantId}` : sql``}
           ${start ? sql` AND cbb.booking_date >= ${start} AND cbb.booking_date <= ${end}` : sql``}
         `)
 

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const Staffs: CollectionConfig = {
   slug: 'staffs',
@@ -226,13 +227,21 @@ export const Staffs: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
             SELECT
               COALESCE(SUM(CASE WHEN s.status = 'paid' THEN s.salary ELSE 0 END), 0) AS "staffPaidSalary",
               COUNT(s.id) AS "totalStaffSalaryCount",
               COALESCE(SUM(CASE WHEN s.status = 'unpaid' THEN s.salary ELSE 0 END), 0) AS "staffDueSalary"
-            FROM staffs_salaries s  
+            FROM staffs_salaries s
+            INNER JOIN staffs st ON st.id = s._parent_id
             WHERE 1=1
+            ${tenantId ? sql`AND st.tenant_id = ${tenantId}` : sql``}
             ${start && end ? sql`AND s.payment_month >= ${start} AND s.payment_month <= ${end}` : sql``}
           `)
 

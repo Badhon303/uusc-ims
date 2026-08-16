@@ -1,23 +1,22 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { usePayloadAPI, Gutter, DatePicker } from '@payloadcms/ui'
 import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 
 const BookingReports: React.FC = () => {
   const [month, setMonth] = useState<Date | null>(null)
 
-  // ✅ Extract month & year
-  const queryParams = new URLSearchParams()
-
-  if (month) {
-    queryParams.append('month', String(month.getMonth() + 1))
-    queryParams.append('year', String(month.getFullYear()))
-  }
-
-  const apiUrl = `/api/booking-payments/income-from-bookings${
-    queryParams.toString() ? `?${queryParams.toString()}` : ''
-  }`
+  // Memoize the API URL so it stays stable across re-renders unless `month`
+  // actually changes.
+  const apiUrl = useMemo(() => {
+    if (!month) return '/api/booking-payments/income-from-bookings'
+    const params = new URLSearchParams({
+      month: String(month.getMonth() + 1),
+      year: String(month.getFullYear()),
+    })
+    return `/api/booking-payments/income-from-bookings?${params.toString()}`
+  }, [month])
 
   const [{ data, isLoading, isError }] = usePayloadAPI(apiUrl)
 

@@ -67,6 +67,10 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    tenants: Tenant;
+    'subscription-plans': SubscriptionPlan;
+    'subscription-invoices': SubscriptionInvoice;
+    'subscription-events': SubscriptionEvent;
     users: User;
     media: Media;
     courts: Court;
@@ -81,6 +85,7 @@ export interface Config {
     'member-payments': MemberPayment;
     'student-payments': StudentPayment;
     'booking-payments': BookingPayment;
+    payments: Payment;
     sponsors: Sponsor;
     'other-incomes': OtherIncome;
     'training-groups': TrainingGroup;
@@ -94,13 +99,20 @@ export interface Config {
     'training-schedules': TrainingSchedule;
     'member-schedules': MemberSchedule;
     'court-bookings': CourtBooking;
+    notifications: Notification;
+    'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {};
   collectionsSelect: {
+    tenants: TenantsSelect<false> | TenantsSelect<true>;
+    'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
+    'subscription-invoices': SubscriptionInvoicesSelect<false> | SubscriptionInvoicesSelect<true>;
+    'subscription-events': SubscriptionEventsSelect<false> | SubscriptionEventsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     courts: CourtsSelect<false> | CourtsSelect<true>;
@@ -115,6 +127,7 @@ export interface Config {
     'member-payments': MemberPaymentsSelect<false> | MemberPaymentsSelect<true>;
     'student-payments': StudentPaymentsSelect<false> | StudentPaymentsSelect<true>;
     'booking-payments': BookingPaymentsSelect<false> | BookingPaymentsSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
     sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
     'other-incomes': OtherIncomesSelect<false> | OtherIncomesSelect<true>;
     'training-groups': TrainingGroupsSelect<false> | TrainingGroupsSelect<true>;
@@ -128,7 +141,10 @@ export interface Config {
     'training-schedules': TrainingSchedulesSelect<false> | TrainingSchedulesSelect<true>;
     'member-schedules': MemberSchedulesSelect<false> | MemberSchedulesSelect<true>;
     'court-bookings': CourtBookingsSelect<false> | CourtBookingsSelect<true>;
+    notifications: NotificationsSelect<false> | NotificationsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -137,15 +153,29 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'platform-settings': PlatformSetting;
+    'payload-jobs-stats': PayloadJobsStat;
+  };
+  globalsSelect: {
+    'platform-settings': PlatformSettingsSelect<false> | PlatformSettingsSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
   };
   user: User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      enforceTenantSubscriptions: TaskEnforceTenantSubscriptions;
+      sendBillingReminders: TaskSendBillingReminders;
+      dispatchPendingNotifications: TaskDispatchPendingNotifications;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
   };
 }
@@ -169,32 +199,49 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "tenants".
  */
-export interface User {
+export interface Tenant {
   id: number;
   name: string;
+  slug: string;
+  logoId?: (number | null) | Media;
   contactNumber?: string | null;
-  role: 'admin' | 'manager' | 'coach' | 'member' | 'student' | 'guest';
   address?: string | null;
+  timezone: string;
+  currency: string;
+  isActive: boolean;
+  settings?: {
+    latePaymentGraceDays?: number | null;
+    cancellationPolicy?: string | null;
+  };
+  subscriptionPlan?: (number | null) | SubscriptionPlan;
+  subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'suspended' | 'cancelled';
+  /**
+   * Kept in sync with the billing type of the selected plan.
+   */
+  billingCycle: 'monthly' | 'one-time';
+  trialStartedAt?: string | null;
+  trialEndsAt?: string | null;
+  currentPeriodStart?: string | null;
+  currentPeriodEnd?: string | null;
+  nextBillingDate?: string | null;
+  gracePeriodDays?: number | null;
+  autoSuspendOnExpiry: boolean;
+  /**
+   * Stamped when a one-time (lifetime) invoice is paid.
+   */
+  lifetimePurchasedAt?: string | null;
+  /**
+   * Stamped once the plan’s setup fee has been invoiced and paid.
+   */
+  setupFeeChargedAt?: string | null;
+  suspendedAt?: string | null;
+  suspendedReason?: string | null;
+  cancelledAt?: string | null;
+  cancelledReason?: string | null;
   updatedAt: string;
   createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -235,10 +282,160 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans".
+ */
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  /**
+   * Recurring plans are invoiced every billing cycle. One-time plans are paid once and never expire.
+   */
+  billingType: 'recurring' | 'one-time';
+  monthlyPrice?: number | null;
+  oneTimePrice?: number | null;
+  currency: string;
+  isActive: boolean;
+  /**
+   * Charged once, on the tenant’s first invoice. Applies to both recurring and one-time plans.
+   */
+  setupFee?: number | null;
+  features?: {
+    maxCourts?: number | null;
+    maxUsers?: number | null;
+    tournamentsEnabled?: boolean | null;
+    whatsappNotificationsEnabled?: boolean | null;
+    reportsEnabled?: boolean | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-invoices".
+ */
+export interface SubscriptionInvoice {
+  id: number;
+  tenant: number | Tenant;
+  plan?: (number | null) | SubscriptionPlan;
+  /**
+   * One-time invoices have no billing period and activate the tenant permanently once paid.
+   */
+  invoiceType: 'subscription' | 'one-time';
+  /**
+   * When present, the invoice amount is the sum of these lines.
+   */
+  lineItems?:
+    | {
+        label: string;
+        kind: 'subscription' | 'one-time' | 'setup-fee';
+        amount: number;
+        id?: string | null;
+      }[]
+    | null;
+  billingPeriodStart?: string | null;
+  billingPeriodEnd?: string | null;
+  dueAt: string;
+  /**
+   * Recalculated from the line items when any are present.
+   */
+  amount: number;
+  currency: string;
+  status: 'draft' | 'pending' | 'paid' | 'failed' | 'void';
+  paymentMethod?: ('bkash' | 'nagad' | 'sslcommerz' | 'manual/bank-transfer') | null;
+  gatewayTransactionId?: string | null;
+  issuedAt: string;
+  paidAt?: string | null;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name: string;
+  contactNumber?: string | null;
+  role: 'super-admin' | 'admin' | 'manager' | 'coach' | 'staff' | 'member' | 'student' | 'guest';
+  isSuperAdmin?: boolean | null;
+  tenantSubscriptionStatus?: string | null;
+  address?: string | null;
+  tenants?:
+    | {
+        tenant: number | Tenant;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-events".
+ */
+export interface SubscriptionEvent {
+  id: number;
+  tenant: number | Tenant;
+  eventType:
+    | 'trial_started'
+    | 'trial_extended'
+    | 'trial_converted'
+    | 'plan_changed'
+    | 'one_time_purchased'
+    | 'setup_fee_charged'
+    | 'invoice_generated'
+    | 'payment_received'
+    | 'payment_failed'
+    | 'suspended'
+    | 'reactivated'
+    | 'cancelled';
+  fromValue?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  toValue?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  triggeredBy?: (number | null) | User;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "courts".
  */
 export interface Court {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   peakHourPrice: number;
   normalHourPrice: number;
@@ -251,6 +448,7 @@ export interface Court {
  */
 export interface Package {
   id: number;
+  tenant?: (number | null) | Tenant;
   title: string;
   price: number;
   registrationFee: number;
@@ -269,6 +467,7 @@ export interface Package {
  */
 export interface Student {
   id: number;
+  tenant?: (number | null) | Tenant;
   studentName?: string | null;
   user: number | User;
   joinDate: string;
@@ -296,6 +495,7 @@ export interface Student {
  */
 export interface Member {
   id: number;
+  tenant?: (number | null) | Tenant;
   memberName?: string | null;
   user: number | User;
   joinDate: string;
@@ -319,6 +519,7 @@ export interface Member {
  */
 export interface Coach {
   id: number;
+  tenant?: (number | null) | Tenant;
   coachName?: string | null;
   user: number | User;
   joinDate: string;
@@ -366,6 +567,7 @@ export interface Coach {
  */
 export interface CoachSalary {
   id: number;
+  tenant?: (number | null) | Tenant;
   coach: number | Coach;
   totalDue?: number | null;
   totalPaid?: number | null;
@@ -388,6 +590,7 @@ export interface CoachSalary {
  */
 export interface Manager {
   id: number;
+  tenant?: (number | null) | Tenant;
   user: number | User;
   totalDue?: number | null;
   totalPaid?: number | null;
@@ -413,6 +616,7 @@ export interface Manager {
  */
 export interface Staff {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   totalDue?: number | null;
   totalPaid?: number | null;
@@ -440,6 +644,7 @@ export interface Staff {
  */
 export interface Expenditure {
   id: number;
+  tenant?: (number | null) | Tenant;
   title: string;
   description?: string | null;
   type:
@@ -460,6 +665,7 @@ export interface Expenditure {
  */
 export interface MemberPayment {
   id: number;
+  tenant?: (number | null) | Tenant;
   user: number | Member;
   totalDue?: number | null;
   totalPaid?: number | null;
@@ -484,6 +690,7 @@ export interface MemberPayment {
  */
 export interface StudentPayment {
   id: number;
+  tenant?: (number | null) | Tenant;
   student: number | Student;
   totalDue?: number | null;
   totalPaid?: number | null;
@@ -508,6 +715,7 @@ export interface StudentPayment {
  */
 export interface BookingPayment {
   id: number;
+  tenant?: (number | null) | Tenant;
   booking: number | CourtBooking;
   totalAmount: number;
   paymentStatus: 'paid' | 'unpaid';
@@ -520,6 +728,7 @@ export interface BookingPayment {
  */
 export interface CourtBooking {
   id: number;
+  tenant?: (number | null) | Tenant;
   title?: string | null;
   user: number | User;
   bookings: {
@@ -535,10 +744,46 @@ export interface CourtBooking {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  payerType: 'member' | 'student' | 'guest';
+  payer?:
+    | ({
+        relationTo: 'members';
+        value: number | Member;
+      } | null)
+    | ({
+        relationTo: 'students';
+        value: number | Student;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null);
+  context: 'membership' | 'registration-fee' | 'court-booking' | 'tournament-fee';
+  contextRefId?: string | null;
+  amount: number;
+  paymentMethod: 'cash' | 'bkash' | 'nagad' | 'sslcommerz' | 'card';
+  status: 'pending' | 'paid' | 'failed' | 'refunded' | 'due';
+  gatewayTransactionId?: string | null;
+  gatewayStatus?: string | null;
+  invoiceNumber?: string | null;
+  dueDate?: string | null;
+  paidAt?: string | null;
+  deletedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sponsors".
  */
 export interface Sponsor {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   contactNumber: string;
   description?: string | null;
@@ -559,6 +804,7 @@ export interface Sponsor {
  */
 export interface OtherIncome {
   id: number;
+  tenant?: (number | null) | Tenant;
   title: string;
   amount: number;
   date: string;
@@ -572,6 +818,7 @@ export interface OtherIncome {
  */
 export interface TrainingGroup {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   students: (number | Student)[];
   coach: number | Coach;
@@ -586,6 +833,7 @@ export interface TrainingGroup {
  */
 export interface StudentAttendance {
   id: number;
+  tenant?: (number | null) | Tenant;
   student: number | Student;
   attendances?:
     | {
@@ -612,6 +860,7 @@ export interface StudentAttendance {
  */
 export interface StudentProgress {
   id: number;
+  tenant?: (number | null) | Tenant;
   student: number | Student;
   coach: number | Coach;
   evaluations?:
@@ -650,6 +899,7 @@ export interface StudentProgress {
  */
 export interface Tournament {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   tournamentType: 'academy' | 'members' | 'academy&members' | 'openForAll';
   registrationFee: number;
@@ -680,6 +930,7 @@ export interface Tournament {
  */
 export interface TournamentRegistration {
   id: number;
+  tenant?: (number | null) | Tenant;
   tournament: number | Tournament;
   user: number | User;
   registrationDate?: string | null;
@@ -693,6 +944,7 @@ export interface TournamentRegistration {
  */
 export interface TournamentTeam {
   id: number;
+  tenant?: (number | null) | Tenant;
   tournament: number | Tournament;
   teams?:
     | {
@@ -710,6 +962,7 @@ export interface TournamentTeam {
  */
 export interface TournamentMatch {
   id: number;
+  tenant?: (number | null) | Tenant;
   tournament: number | Tournament;
   matches?:
     | {
@@ -737,6 +990,7 @@ export interface TournamentMatch {
  */
 export interface TournamentResult {
   id: number;
+  tenant?: (number | null) | Tenant;
   tournament: number | Tournament;
   teamPositions: {
     team: string;
@@ -753,6 +1007,7 @@ export interface TournamentResult {
  */
 export interface TrainingSchedule {
   id: number;
+  tenant?: (number | null) | Tenant;
   trainingGroup: number | TrainingGroup;
   coach: number | Coach;
   schedules?:
@@ -784,6 +1039,7 @@ export interface TrainingSchedule {
  */
 export interface MemberSchedule {
   id: number;
+  tenant?: (number | null) | Tenant;
   shiftName: string;
   schedules?:
     | {
@@ -809,6 +1065,58 @@ export interface MemberSchedule {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notifications".
+ */
+export interface Notification {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  userId?: (number | null) | User;
+  channel: 'whatsapp' | 'email' | 'in-app';
+  type: string;
+  status: 'pending' | 'queued' | 'sent' | 'failed';
+  payload?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sentAt?: string | null;
+  /**
+   * Set when the recipient opens the notification from the header bell.
+   */
+  readAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  userId?: (number | null) | User;
+  action: string;
+  collection: string;
+  documentId: string;
+  diff?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  ip?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -826,11 +1134,128 @@ export interface PayloadKv {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: number;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug: 'inline' | 'enforceTenantSubscriptions' | 'sendBillingReminders' | 'dispatchPendingNotifications';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?: ('inline' | 'enforceTenantSubscriptions' | 'sendBillingReminders' | 'dispatchPendingNotifications') | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
   id: number;
   document?:
+    | ({
+        relationTo: 'tenants';
+        value: number | Tenant;
+      } | null)
+    | ({
+        relationTo: 'subscription-plans';
+        value: number | SubscriptionPlan;
+      } | null)
+    | ({
+        relationTo: 'subscription-invoices';
+        value: number | SubscriptionInvoice;
+      } | null)
+    | ({
+        relationTo: 'subscription-events';
+        value: number | SubscriptionEvent;
+      } | null)
     | ({
         relationTo: 'users';
         value: number | User;
@@ -888,6 +1313,10 @@ export interface PayloadLockedDocument {
         value: number | BookingPayment;
       } | null)
     | ({
+        relationTo: 'payments';
+        value: number | Payment;
+      } | null)
+    | ({
         relationTo: 'sponsors';
         value: number | Sponsor;
       } | null)
@@ -938,6 +1367,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'court-bookings';
         value: number | CourtBooking;
+      } | null)
+    | ({
+        relationTo: 'notifications';
+        value: number | Notification;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: number | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -983,13 +1420,127 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tenants_select".
+ */
+export interface TenantsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  logoId?: T;
+  contactNumber?: T;
+  address?: T;
+  timezone?: T;
+  currency?: T;
+  isActive?: T;
+  settings?:
+    | T
+    | {
+        latePaymentGraceDays?: T;
+        cancellationPolicy?: T;
+      };
+  subscriptionPlan?: T;
+  subscriptionStatus?: T;
+  billingCycle?: T;
+  trialStartedAt?: T;
+  trialEndsAt?: T;
+  currentPeriodStart?: T;
+  currentPeriodEnd?: T;
+  nextBillingDate?: T;
+  gracePeriodDays?: T;
+  autoSuspendOnExpiry?: T;
+  lifetimePurchasedAt?: T;
+  setupFeeChargedAt?: T;
+  suspendedAt?: T;
+  suspendedReason?: T;
+  cancelledAt?: T;
+  cancelledReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans_select".
+ */
+export interface SubscriptionPlansSelect<T extends boolean = true> {
+  name?: T;
+  billingType?: T;
+  monthlyPrice?: T;
+  oneTimePrice?: T;
+  currency?: T;
+  isActive?: T;
+  setupFee?: T;
+  features?:
+    | T
+    | {
+        maxCourts?: T;
+        maxUsers?: T;
+        tournamentsEnabled?: T;
+        whatsappNotificationsEnabled?: T;
+        reportsEnabled?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-invoices_select".
+ */
+export interface SubscriptionInvoicesSelect<T extends boolean = true> {
+  tenant?: T;
+  plan?: T;
+  invoiceType?: T;
+  lineItems?:
+    | T
+    | {
+        label?: T;
+        kind?: T;
+        amount?: T;
+        id?: T;
+      };
+  billingPeriodStart?: T;
+  billingPeriodEnd?: T;
+  dueAt?: T;
+  amount?: T;
+  currency?: T;
+  status?: T;
+  paymentMethod?: T;
+  gatewayTransactionId?: T;
+  issuedAt?: T;
+  paidAt?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-events_select".
+ */
+export interface SubscriptionEventsSelect<T extends boolean = true> {
+  tenant?: T;
+  eventType?: T;
+  fromValue?: T;
+  toValue?: T;
+  triggeredBy?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   contactNumber?: T;
   role?: T;
+  isSuperAdmin?: T;
+  tenantSubscriptionStatus?: T;
   address?: T;
+  tenants?:
+    | T
+    | {
+        tenant?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1054,6 +1605,7 @@ export interface MediaSelect<T extends boolean = true> {
  * via the `definition` "courts_select".
  */
 export interface CourtsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   peakHourPrice?: T;
   normalHourPrice?: T;
@@ -1065,6 +1617,7 @@ export interface CourtsSelect<T extends boolean = true> {
  * via the `definition` "packages_select".
  */
 export interface PackagesSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   price?: T;
   registrationFee?: T;
@@ -1082,6 +1635,7 @@ export interface PackagesSelect<T extends boolean = true> {
  * via the `definition` "students_select".
  */
 export interface StudentsSelect<T extends boolean = true> {
+  tenant?: T;
   studentName?: T;
   user?: T;
   joinDate?: T;
@@ -1108,6 +1662,7 @@ export interface StudentsSelect<T extends boolean = true> {
  * via the `definition` "members_select".
  */
 export interface MembersSelect<T extends boolean = true> {
+  tenant?: T;
   memberName?: T;
   user?: T;
   joinDate?: T;
@@ -1130,6 +1685,7 @@ export interface MembersSelect<T extends boolean = true> {
  * via the `definition` "coaches_select".
  */
 export interface CoachesSelect<T extends boolean = true> {
+  tenant?: T;
   coachName?: T;
   user?: T;
   joinDate?: T;
@@ -1162,6 +1718,7 @@ export interface CoachesSelect<T extends boolean = true> {
  * via the `definition` "coach-salaries_select".
  */
 export interface CoachSalariesSelect<T extends boolean = true> {
+  tenant?: T;
   coach?: T;
   totalDue?: T;
   totalPaid?: T;
@@ -1183,6 +1740,7 @@ export interface CoachSalariesSelect<T extends boolean = true> {
  * via the `definition` "managers_select".
  */
 export interface ManagersSelect<T extends boolean = true> {
+  tenant?: T;
   user?: T;
   totalDue?: T;
   totalPaid?: T;
@@ -1207,6 +1765,7 @@ export interface ManagersSelect<T extends boolean = true> {
  * via the `definition` "staffs_select".
  */
 export interface StaffsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   totalDue?: T;
   totalPaid?: T;
@@ -1233,6 +1792,7 @@ export interface StaffsSelect<T extends boolean = true> {
  * via the `definition` "expenditures_select".
  */
 export interface ExpendituresSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   description?: T;
   type?: T;
@@ -1246,6 +1806,7 @@ export interface ExpendituresSelect<T extends boolean = true> {
  * via the `definition` "member-payments_select".
  */
 export interface MemberPaymentsSelect<T extends boolean = true> {
+  tenant?: T;
   user?: T;
   totalDue?: T;
   totalPaid?: T;
@@ -1269,6 +1830,7 @@ export interface MemberPaymentsSelect<T extends boolean = true> {
  * via the `definition` "student-payments_select".
  */
 export interface StudentPaymentsSelect<T extends boolean = true> {
+  tenant?: T;
   student?: T;
   totalDue?: T;
   totalPaid?: T;
@@ -1292,6 +1854,7 @@ export interface StudentPaymentsSelect<T extends boolean = true> {
  * via the `definition` "booking-payments_select".
  */
 export interface BookingPaymentsSelect<T extends boolean = true> {
+  tenant?: T;
   booking?: T;
   totalAmount?: T;
   paymentStatus?: T;
@@ -1300,9 +1863,32 @@ export interface BookingPaymentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  tenant?: T;
+  payerType?: T;
+  payer?: T;
+  context?: T;
+  contextRefId?: T;
+  amount?: T;
+  paymentMethod?: T;
+  status?: T;
+  gatewayTransactionId?: T;
+  gatewayStatus?: T;
+  invoiceNumber?: T;
+  dueDate?: T;
+  paidAt?: T;
+  deletedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sponsors_select".
  */
 export interface SponsorsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   contactNumber?: T;
   description?: T;
@@ -1322,6 +1908,7 @@ export interface SponsorsSelect<T extends boolean = true> {
  * via the `definition` "other-incomes_select".
  */
 export interface OtherIncomesSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   amount?: T;
   date?: T;
@@ -1334,6 +1921,7 @@ export interface OtherIncomesSelect<T extends boolean = true> {
  * via the `definition` "training-groups_select".
  */
 export interface TrainingGroupsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   students?: T;
   coach?: T;
@@ -1347,6 +1935,7 @@ export interface TrainingGroupsSelect<T extends boolean = true> {
  * via the `definition` "student-attendance_select".
  */
 export interface StudentAttendanceSelect<T extends boolean = true> {
+  tenant?: T;
   student?: T;
   attendances?:
     | T
@@ -1372,6 +1961,7 @@ export interface StudentAttendanceSelect<T extends boolean = true> {
  * via the `definition` "student-progress_select".
  */
 export interface StudentProgressSelect<T extends boolean = true> {
+  tenant?: T;
   student?: T;
   coach?: T;
   evaluations?:
@@ -1396,6 +1986,7 @@ export interface StudentProgressSelect<T extends boolean = true> {
  * via the `definition` "tournaments_select".
  */
 export interface TournamentsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   tournamentType?: T;
   registrationFee?: T;
@@ -1411,6 +2002,7 @@ export interface TournamentsSelect<T extends boolean = true> {
  * via the `definition` "tournament-registrations_select".
  */
 export interface TournamentRegistrationsSelect<T extends boolean = true> {
+  tenant?: T;
   tournament?: T;
   user?: T;
   registrationDate?: T;
@@ -1423,6 +2015,7 @@ export interface TournamentRegistrationsSelect<T extends boolean = true> {
  * via the `definition` "tournament-teams_select".
  */
 export interface TournamentTeamsSelect<T extends boolean = true> {
+  tenant?: T;
   tournament?: T;
   teams?:
     | T
@@ -1439,6 +2032,7 @@ export interface TournamentTeamsSelect<T extends boolean = true> {
  * via the `definition` "tournament-matches_select".
  */
 export interface TournamentMatchesSelect<T extends boolean = true> {
+  tenant?: T;
   tournament?: T;
   matches?:
     | T
@@ -1465,6 +2059,7 @@ export interface TournamentMatchesSelect<T extends boolean = true> {
  * via the `definition` "tournament-results_select".
  */
 export interface TournamentResultsSelect<T extends boolean = true> {
+  tenant?: T;
   tournament?: T;
   teamPositions?:
     | T
@@ -1482,6 +2077,7 @@ export interface TournamentResultsSelect<T extends boolean = true> {
  * via the `definition` "training-schedules_select".
  */
 export interface TrainingSchedulesSelect<T extends boolean = true> {
+  tenant?: T;
   trainingGroup?: T;
   coach?: T;
   schedules?:
@@ -1512,6 +2108,7 @@ export interface TrainingSchedulesSelect<T extends boolean = true> {
  * via the `definition` "member-schedules_select".
  */
 export interface MemberSchedulesSelect<T extends boolean = true> {
+  tenant?: T;
   shiftName?: T;
   schedules?:
     | T
@@ -1540,6 +2137,7 @@ export interface MemberSchedulesSelect<T extends boolean = true> {
  * via the `definition` "court-bookings_select".
  */
 export interface CourtBookingsSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   user?: T;
   bookings?:
@@ -1557,11 +2155,74 @@ export interface CourtBookingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notifications_select".
+ */
+export interface NotificationsSelect<T extends boolean = true> {
+  tenant?: T;
+  userId?: T;
+  channel?: T;
+  type?: T;
+  status?: T;
+  payload?: T;
+  sentAt?: T;
+  readAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  tenant?: T;
+  userId?: T;
+  action?: T;
+  collection?: T;
+  documentId?: T;
+  diff?: T;
+  ip?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1597,6 +2258,62 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings".
+ */
+export interface PlatformSetting {
+  id: number;
+  trialDurationDaysDefault: number;
+  defaultPaidPlan?: (number | null) | SubscriptionPlan;
+  defaultGracePeriodDays: number;
+  readOnlyOnSuspended: boolean;
+  billingReminderDaysBefore: number;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings_select".
+ */
+export interface PlatformSettingsSelect<T extends boolean = true> {
+  trialDurationDaysDefault?: T;
+  defaultPaidPlan?: T;
+  defaultGracePeriodDays?: T;
+  readOnlyOnSuspended?: T;
+  billingReminderDaysBefore?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -1604,6 +2321,30 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskEnforceTenantSubscriptions".
+ */
+export interface TaskEnforceTenantSubscriptions {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendBillingReminders".
+ */
+export interface TaskSendBillingReminders {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskDispatchPendingNotifications".
+ */
+export interface TaskDispatchPendingNotifications {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

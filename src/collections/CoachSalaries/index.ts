@@ -1,6 +1,7 @@
 import { isAdmin } from '@/utils/access/isAdmin'
 import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const CoachSalaries: CollectionConfig = {
   slug: 'coach-salaries',
@@ -137,25 +138,14 @@ export const CoachSalaries: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeRead: [
-      async ({ doc, req }) => {
-        if (doc?.coach) {
-          // If already populated (depth >= 1), use it directly — no extra query
-          if (typeof doc.coach === 'object') {
-            doc.coachName = doc.coach.coachName ?? null
-          } else {
-            // Fallback for depth: 0 — manually fetch
-            try {
-              const coachDoc = await req.payload.findByID({
-                collection: 'coaches',
-                id: doc.coach,
-                depth: 0,
-              })
-              doc.coachName = coachDoc?.coachName ?? null
-            } catch {
-              doc.coachName = null
-            }
-          }
+    afterRead: [
+      ({ doc }) => {
+        // Populate the virtual `coachName` from the populated coach relationship.
+        // The admin UI uses depth >= 1 for list views, so `doc.coach` is normally
+        // populated. We intentionally do NOT fall back to a per-document fetch
+        // when depth is 0 — that created an N+1 in list views.
+        if (doc?.coach && typeof doc.coach === 'object') {
+          doc.coachName = doc.coach.coachName ?? null
         }
         return doc
       },
@@ -185,6 +175,9 @@ export const CoachSalaries: CollectionConfig = {
       path: '/expense-for-coach-salaries',
       method: 'get',
       handler: async (req: any) => {
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
 
@@ -196,13 +189,21 @@ export const CoachSalaries: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
               SELECT
                 COALESCE(SUM(CASE WHEN s.status = 'paid' THEN s.salary ELSE 0 END), 0) AS "coachPaidSalary",
                 COUNT(s.id) AS "totalCoachSalaryCount",
                 COALESCE(SUM(CASE WHEN s.status = 'unpaid' THEN s.salary ELSE 0 END), 0) AS "coachDueSalary"
               FROM coach_salaries_salaries s
+              INNER JOIN coach_salaries cs ON cs.id = s._parent_id
               WHERE 1=1
+              ${tenantId ? sql`AND cs.tenant_id = ${tenantId}` : sql``}
               ${start && end ? sql`AND s.payment_month >= ${start} AND s.payment_month <= ${end}` : sql``}
             `)
 

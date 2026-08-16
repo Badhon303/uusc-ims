@@ -1,23 +1,20 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { usePayloadAPI, Gutter, DatePicker } from '@payloadcms/ui'
 import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 
 const StaffSalaryReports: React.FC = () => {
   const [month, setMonth] = useState<Date | null>(null)
 
-  // ✅ Extract month & year
-  const queryParams = new URLSearchParams()
-
-  if (month) {
-    queryParams.append('month', String(month.getMonth() + 1))
-    queryParams.append('year', String(month.getFullYear()))
-  }
-
-  const apiUrl = `/api/staffs/expense-for-staff-salaries${
-    queryParams.toString() ? `?${queryParams.toString()}` : ''
-  }`
+  const apiUrl = useMemo(() => {
+    if (!month) return '/api/staffs/expense-for-staff-salaries'
+    const params = new URLSearchParams({
+      month: String(month.getMonth() + 1),
+      year: String(month.getFullYear()),
+    })
+    return `/api/staffs/expense-for-staff-salaries?${params.toString()}`
+  }, [month])
 
   const [{ data, isLoading, isError }] = usePayloadAPI(apiUrl)
 

@@ -1,6 +1,8 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { sql } from 'drizzle-orm'
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const getMemberPackage = async (req: any) => {
   // ✅ If already fetched, reuse
@@ -35,7 +37,7 @@ export const MemberPayments: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager'].includes(user.role)
@@ -219,13 +221,21 @@ export const MemberPayments: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
                     SELECT 
                       -- 1. Sum Registration Fees (Using a subquery to avoid duplicates from joins)
                       (
                         SELECT COALESCE(SUM(registration_fee), 0)
                         FROM member_payments
-                        WHERE ${start ? sql`registration_date >= ${start} AND registration_date <= ${end}` : sql`TRUE`}
+                        WHERE 1=1
+                        ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
+                        ${start ? sql`AND registration_date >= ${start} AND registration_date <= ${end}` : sql``}
               ) as "memberRegistrationFee",
 
               -- 2. Sum Subscription Fees (Paid)
@@ -247,6 +257,9 @@ export const MemberPayments: CollectionConfig = {
               ), 0) as "totalSubscriptionDue"
 
             FROM member_payments_payments p
+            INNER JOIN member_payments mp ON mp.id = p._parent_id
+            WHERE 1=1
+            ${tenantId ? sql`AND mp.tenant_id = ${tenantId}` : sql``}
           `)
 
           const data = result.rows?.[0] || {}

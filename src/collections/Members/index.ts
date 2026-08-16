@@ -1,4 +1,6 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
+import { tenantScopedUserFilter } from '@/utils/access/tenantFilterOptions'
 import type { CollectionConfig } from 'payload'
 
 export const getMemberPackage = async (req: any) => {
@@ -31,7 +33,7 @@ export const Members: CollectionConfig = {
     group: '🥳 Profiles',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager'].includes(user.role)
@@ -71,13 +73,7 @@ export const Members: CollectionConfig = {
           required: true,
           unique: true,
           hasMany: false,
-          filterOptions: () => {
-            return {
-              role: {
-                equals: 'member',
-              },
-            }
-          },
+          filterOptions: ({ req }) => tenantScopedUserFilter(req, 'member'),
         },
         {
           name: 'joinDate',
@@ -184,7 +180,13 @@ export const Members: CollectionConfig = {
       },
     ],
     afterChange: [
-      async ({ doc, req, operation }) => {
+      async ({ doc, req, operation, context }) => {
+        // Skip the self-update when triggered by our own hook to avoid an
+        // extra write cycle.
+        if (context?.skipMemberNameSync) {
+          return doc
+        }
+
         // Ensure memberName is updated after change, especially if the user relationship
         // was modified and we need to re-fetch the user name
         if (doc?.user && (operation === 'create' || operation === 'update')) {
@@ -213,6 +215,7 @@ export const Members: CollectionConfig = {
               data: {
                 memberName: userName,
               },
+              context: { skipMemberNameSync: true },
               req,
             })
           }
@@ -238,6 +241,8 @@ export const Members: CollectionConfig = {
             collection: 'members',
             where: { user: { equals: user.id } },
             limit: 1,
+            req,
+            overrideAccess: false,
           })
 
           if (!memberQuery.docs.length) {
@@ -265,6 +270,7 @@ export const Members: CollectionConfig = {
               name: file.name,
               size: file.size,
             },
+            req,
           })
 
           const newProfilePictureId = uploadedMedia.id
@@ -283,7 +289,8 @@ export const Members: CollectionConfig = {
             collection: 'members',
             id: memberDoc.id,
             data: { profilePicture: newProfilePictureId },
-            overrideAccess: true, // Prevents validation errors
+            overrideAccess: true, // Member is editing their own profile picture
+            req,
           })
 
           // 5. Cleanup: Delete the OLD image if it exists and is different
@@ -293,6 +300,7 @@ export const Members: CollectionConfig = {
                 collection: 'media',
                 id: oldMediaId,
                 overrideAccess: true,
+                req,
               })
               payload.logger.info(`Deleted old media: ${oldMediaId}`)
             } catch (err) {
@@ -357,6 +365,8 @@ export const Members: CollectionConfig = {
             collection: 'members',
             where: { user: { equals: user.id } },
             limit: 1,
+            req,
+            overrideAccess: false,
           })
 
           if (!memberQuery.docs.length) {
@@ -386,6 +396,7 @@ export const Members: CollectionConfig = {
               name: file.name,
               size: file.size,
             },
+            req,
           })
 
           const newPictureId = uploadedMedia.id
@@ -408,6 +419,7 @@ export const Members: CollectionConfig = {
             id: memberDoc.id,
             data: { achievements: updatedAchievements },
             overrideAccess: true,
+            req,
           })
 
           // 5. Cleanup: Delete the OLD image if it exists and is different
@@ -417,6 +429,7 @@ export const Members: CollectionConfig = {
                 collection: 'media',
                 id: oldMediaId,
                 overrideAccess: true,
+                req,
               })
               payload.logger.info(`Deleted old achievement media: ${oldMediaId}`)
             } catch (err) {

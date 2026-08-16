@@ -1,6 +1,8 @@
 import { isAdmin } from '@/utils/access/isAdmin'
 import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
+import { tenantScopedUserFilter } from '@/utils/access/tenantFilterOptions'
 
 export const Managers: CollectionConfig = {
   slug: 'managers',
@@ -35,6 +37,7 @@ export const Managers: CollectionConfig = {
           required: true,
           unique: true,
           hasMany: false,
+          filterOptions: ({ req }) => tenantScopedUserFilter(req, 'manager'),
         },
         {
           name: 'totalDue',
@@ -191,6 +194,9 @@ export const Managers: CollectionConfig = {
       path: '/expense-for-manager-salaries',
       method: 'get',
       handler: async (req: any) => {
+        if (!req.user || !['admin', 'manager'].includes(req.user.role)) {
+          return Response.json({ error: 'forbidden' }, { status: 403 })
+        }
         try {
           const { month, year } = req.query
 
@@ -202,13 +208,21 @@ export const Managers: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
               SELECT
                 COALESCE(SUM(CASE WHEN s.status = 'paid' THEN s.salary ELSE 0 END), 0) AS "managerPaidSalary",
                 COUNT(s.id) AS "totalManagerSalaryCount",
                 COALESCE(SUM(CASE WHEN s.status = 'unpaid' THEN s.salary ELSE 0 END), 0) AS "managerDueSalary"
-              FROM managers_salaries s  
+              FROM managers_salaries s
+              INNER JOIN managers m ON m.id = s._parent_id
               WHERE 1=1
+              ${tenantId ? sql`AND m.tenant_id = ${tenantId}` : sql``}
               ${start && end ? sql`AND s.payment_month >= ${start} AND s.payment_month <= ${end}` : sql``}
             `)
 

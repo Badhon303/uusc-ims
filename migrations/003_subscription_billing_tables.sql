@@ -1,0 +1,67 @@
+CREATE TABLE IF NOT EXISTS subscription_plans (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  monthly_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+  currency VARCHAR(10) NOT NULL DEFAULT 'BDT',
+  features JSONB,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subscription_invoices (
+  id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+  plan_id INTEGER REFERENCES subscription_plans(id) ON DELETE SET NULL,
+  billing_period_start TIMESTAMPTZ NOT NULL,
+  billing_period_end TIMESTAMPTZ NOT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'BDT',
+  status VARCHAR(20) NOT NULL DEFAULT 'draft',
+  payment_method VARCHAR(50),
+  gateway_transaction_id VARCHAR(255) UNIQUE,
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  due_at TIMESTAMPTZ NOT NULL,
+  paid_at TIMESTAMPTZ,
+  created_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subscription_events (
+  id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  event_type VARCHAR(50) NOT NULL,
+  from_value JSONB,
+  to_value JSONB,
+  triggered_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  channel VARCHAR(20) NOT NULL,
+  type VARCHAR(100) NOT NULL,
+  payload JSONB,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  action VARCHAR(100) NOT NULL,
+  collection VARCHAR(100) NOT NULL,
+  document_id VARCHAR(100) NOT NULL,
+  diff JSONB,
+  ip VARCHAR(100),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);

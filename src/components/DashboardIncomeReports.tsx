@@ -1,29 +1,36 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { usePayloadAPI, DatePicker, useAuth } from '@payloadcms/ui'
 import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'BDT' }).format(val)
+// Hoist the formatter so it is created once, not on every render.
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'BDT',
+})
+const formatCurrency = (val: number) => currencyFormatter.format(val)
 
 const DashboardIncomeReports: React.FC = () => {
   const { user } = useAuth()
   const [month, setMonth] = useState<Date | null>(null)
 
-  const queryParams = new URLSearchParams()
-  if (month) {
-    queryParams.append('month', String(month.getMonth() + 1))
-    queryParams.append('year', String(month.getFullYear()))
-  }
-
-  const apiUrl = `/api/other-incomes/overall-income-stats${
-    queryParams.toString() ? `?${queryParams.toString()}` : ''
-  }`
+  // Memoize the API URL so it stays stable across re-renders unless `month`
+  // actually changes. Recreating it every render caused `usePayloadAPI` to
+  // refetch unnecessarily.
+  const apiUrl = useMemo(() => {
+    if (!month) return '/api/other-incomes/overall-income-stats'
+    const params = new URLSearchParams({
+      month: String(month.getMonth() + 1),
+      year: String(month.getFullYear()),
+    })
+    return `/api/other-incomes/overall-income-stats?${params.toString()}`
+  }, [month])
 
   const [{ data, isLoading, isError }] = usePayloadAPI(apiUrl)
   const isManager = user?.role?.includes('coach')
-  if (isManager) return null
+  const isSuperAdmin = user?.isSuperAdmin === true
+  if (isManager || isSuperAdmin) return null
 
   if (isError) {
     return (

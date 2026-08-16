@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { CollectionConfig } from 'payload'
 
 export const TrainingSchedules: CollectionConfig = {
@@ -11,7 +12,7 @@ export const TrainingSchedules: CollectionConfig = {
     group: '📅 Schedule',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'coach'].includes(user.role)
@@ -179,6 +180,8 @@ export const TrainingSchedules: CollectionConfig = {
           },
           depth: 2,
           limit: 1,
+          req,
+          overrideAccess: false,
         })
 
         const scheduleDoc = result.docs[0]

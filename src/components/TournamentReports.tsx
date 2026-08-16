@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { usePayloadAPI, Gutter, Select } from '@payloadcms/ui'
 import { cardStyle, labelStyle, valueStyle } from './css/custom-css'
 
@@ -38,20 +38,22 @@ const TournamentReports: React.FC = () => {
     }
   }, [debouncedSearch])
 
-  // Build stats API URL
-  const queryParams = new URLSearchParams()
-  if (selectedTournament?.value) {
-    queryParams.append('tournamentId', selectedTournament.value)
-  }
+  // Build stats API URL (memoized to avoid refetch on unrelated re-renders)
+  const statsUrl = useMemo(() => {
+    if (!selectedTournament?.value) {
+      return '/api/tournament-registrations/income-from-tournament-registrations'
+    }
+    const params = new URLSearchParams({ tournamentId: selectedTournament.value })
+    return `/api/tournament-registrations/income-from-tournament-registrations?${params.toString()}`
+  }, [selectedTournament?.value])
 
-  const statsUrl = `/api/tournament-registrations/income-from-tournament-registrations${
-    queryParams.toString() ? `?${queryParams.toString()}` : ''
-  }`
-
-  // Build paginated tournament search URL
-  const tournamentUrl =
-    `/api/tournaments?limit=${PAGE_SIZE}&page=${page}` +
-    (debouncedSearch ? `&where[name][like]=${encodeURIComponent(debouncedSearch)}` : '')
+  // Build paginated tournament search URL (memoized)
+  const tournamentUrl = useMemo(() => {
+    const base = `/api/tournaments?limit=${PAGE_SIZE}&page=${page}`
+    return debouncedSearch
+      ? `${base}&where[name][like]=${encodeURIComponent(debouncedSearch)}`
+      : base
+  }, [page, debouncedSearch])
 
   // APIs
   const [{ data: stats, isLoading: statsLoading }] = usePayloadAPI(statsUrl)

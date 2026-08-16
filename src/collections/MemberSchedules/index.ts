@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
 import { CollectionConfig } from 'payload'
 
@@ -12,7 +13,7 @@ export const MemberSchedules: CollectionConfig = {
     group: '📅 Schedule',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: isAdmin,
     update: isAdmin,
     delete: isAdmin,
@@ -152,6 +153,8 @@ export const MemberSchedules: CollectionConfig = {
           },
           depth: 2,
           limit: 1,
+          req,
+          overrideAccess: false,
         })
 
         const scheduleDoc = result.docs[0]

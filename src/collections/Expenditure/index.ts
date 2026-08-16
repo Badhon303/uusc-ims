@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import type { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const Expenditures: CollectionConfig = {
   slug: 'expenditures',
@@ -91,6 +92,12 @@ export const Expenditures: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
             SELECT
               COALESCE(SUM(CASE WHEN type = 'maintenance' THEN amount ELSE 0 END), 0) AS "maintenance",
@@ -101,6 +108,7 @@ export const Expenditures: CollectionConfig = {
               COALESCE(SUM(CASE WHEN type = 'miscellaneous' THEN amount ELSE 0 END), 0) AS "miscellaneous"
             FROM expenditures
             WHERE 1=1
+            ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
             ${start && end ? sql`AND date >= ${start} AND date <= ${end}` : sql``}
           `)
 
@@ -137,31 +145,62 @@ export const Expenditures: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
-          const dateFilter = (col: string) =>
-            start && end
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
+          // Strict allowlist of column names that may be interpolated into raw
+          // SQL. Any caller passing a value outside this set throws instead of
+          // silently injecting it.
+          const ALLOWED_DATE_COLUMNS = new Set([
+            'cs_s.payment_month',
+            'st_s.payment_month',
+            'm_s.payment_month',
+            'date',
+          ])
+          const dateFilter = (col: string) => {
+            if (!ALLOWED_DATE_COLUMNS.has(col)) {
+              throw new Error(`Disallowed date column in report filter: ${col}`)
+            }
+            return start && end
               ? sql`AND ${sql.raw(col)} >= ${start} AND ${sql.raw(col)} <= ${end}`
               : sql``
+          }
 
           // 1. Fetch all data in parallel
           const [coachSalaries, staffSalaries, managerSalaries, generalExpenditures] =
             await Promise.all([
               req.payload.db.drizzle.execute(sql`
           SELECT 
-            COALESCE(SUM(CASE WHEN status = 'paid' THEN salary ELSE 0 END), 0) as paid,
-            COALESCE(SUM(CASE WHEN status = 'unpaid' THEN salary ELSE 0 END), 0) as due
-          FROM coach_salaries_salaries WHERE 1=1 ${dateFilter('payment_month')}`),
+            COALESCE(SUM(CASE WHEN cs_s.status = 'paid' THEN cs_s.salary ELSE 0 END), 0) as paid,
+            COALESCE(SUM(CASE WHEN cs_s.status = 'unpaid' THEN cs_s.salary ELSE 0 END), 0) as due
+          FROM coach_salaries_salaries cs_s
+          INNER JOIN coach_salaries cs ON cs.id = cs_s._parent_id
+          WHERE 1=1
+          ${tenantId ? sql`AND cs.tenant_id = ${tenantId}` : sql``}
+          ${dateFilter('cs_s.payment_month')}`),
 
               req.payload.db.drizzle.execute(sql`
           SELECT 
-            COALESCE(SUM(CASE WHEN status = 'paid' THEN salary ELSE 0 END), 0) as paid,
-            COALESCE(SUM(CASE WHEN status = 'unpaid' THEN salary ELSE 0 END), 0) as due
-          FROM staffs_salaries WHERE 1=1 ${dateFilter('payment_month')}`),
+            COALESCE(SUM(CASE WHEN st_s.status = 'paid' THEN st_s.salary ELSE 0 END), 0) as paid,
+            COALESCE(SUM(CASE WHEN st_s.status = 'unpaid' THEN st_s.salary ELSE 0 END), 0) as due
+          FROM staffs_salaries st_s
+          INNER JOIN staffs st ON st.id = st_s._parent_id
+          WHERE 1=1
+          ${tenantId ? sql`AND st.tenant_id = ${tenantId}` : sql``}
+          ${dateFilter('st_s.payment_month')}`),
 
               req.payload.db.drizzle.execute(sql`
           SELECT 
-            COALESCE(SUM(CASE WHEN status = 'paid' THEN salary ELSE 0 END), 0) as paid,
-            COALESCE(SUM(CASE WHEN status = 'unpaid' THEN salary ELSE 0 END), 0) as due
-          FROM managers_salaries WHERE 1=1 ${dateFilter('payment_month')}`),
+            COALESCE(SUM(CASE WHEN m_s.status = 'paid' THEN m_s.salary ELSE 0 END), 0) as paid,
+            COALESCE(SUM(CASE WHEN m_s.status = 'unpaid' THEN m_s.salary ELSE 0 END), 0) as due
+          FROM managers_salaries m_s
+          INNER JOIN managers m ON m.id = m_s._parent_id
+          WHERE 1=1
+          ${tenantId ? sql`AND m.tenant_id = ${tenantId}` : sql``}
+          ${dateFilter('m_s.payment_month')}`),
 
               req.payload.db.drizzle.execute(sql`
           SELECT
@@ -171,7 +210,7 @@ export const Expenditures: CollectionConfig = {
             COALESCE(SUM(CASE WHEN type = 'tournament-expenses' THEN amount ELSE 0 END), 0) AS tournamentExpenses,
             COALESCE(SUM(CASE WHEN type = 'indoor-facility' THEN amount ELSE 0 END), 0) AS indoorFacility,
             COALESCE(SUM(CASE WHEN type = 'miscellaneous' THEN amount ELSE 0 END), 0) AS miscellaneous
-          FROM expenditures WHERE 1=1 ${dateFilter('date')}`),
+          FROM expenditures WHERE 1=1 ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``} ${dateFilter('date')}`),
             ])
 
           // 2. Parse Results

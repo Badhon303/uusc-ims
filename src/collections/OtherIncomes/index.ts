@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
 
 export const OtherIncomes: CollectionConfig = {
   slug: 'other-incomes',
@@ -79,6 +80,12 @@ export const OtherIncomes: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
                 SELECT
                   COALESCE(SUM(oi.amount), 0) as "totalOtherIncomeAmount",
@@ -87,6 +94,7 @@ export const OtherIncomes: CollectionConfig = {
                 FROM other_incomes oi
 
                 WHERE 1=1
+                ${tenantId ? sql`AND oi.tenant_id = ${tenantId}` : sql``}
                 ${start && end ? sql`AND oi.date >= ${start} AND oi.date <= ${end}` : sql``}
               `)
 
@@ -121,26 +129,46 @@ export const OtherIncomes: CollectionConfig = {
             end = new Date(Number(year), Number(month), 0, 23, 59, 59)
           }
 
-          const dateFilter = (col: string) =>
-            start ? sql`AND ${sql.raw(col)} >= ${start} AND ${sql.raw(col)} <= ${end}` : sql``
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
+          // Strict allowlist of column names that may be interpolated into raw
+          // SQL. Any caller passing a value outside this set throws instead of
+          // silently injecting it.
+          const ALLOWED_DATE_COLUMNS = new Set(['cbb.booking_date', 'sa.date', 'date'])
+          const dateFilter = (col: string) => {
+            if (!ALLOWED_DATE_COLUMNS.has(col)) {
+              throw new Error(`Disallowed date column in report filter: ${col}`)
+            }
+            return start
+              ? sql`AND ${sql.raw(col)} >= ${start} AND ${sql.raw(col)} <= ${end}`
+              : sql``
+          }
 
           // 1. Fetch all data in parallel for better performance
           const [members, students, bookings, sponsors, others] = await Promise.all([
             // Members Query
             req.payload.db.drizzle.execute(sql`
           SELECT 
-            (SELECT COALESCE(SUM(registration_fee), 0) FROM member_payments WHERE ${start ? sql`registration_date >= ${start} AND registration_date <= ${end}` : sql`TRUE`}) as reg,
-            COALESCE(SUM(CASE WHEN status = 'paid' AND ${start ? sql`payment_month >= ${start} AND payment_month <= ${end}` : sql`TRUE`} THEN amount ELSE 0 END), 0) as paid,
-            COALESCE(SUM(CASE WHEN status = 'unpaid' AND ${start ? sql`payment_month >= ${start} AND payment_month <= ${end}` : sql`TRUE`} THEN amount ELSE 0 END), 0) as due
-          FROM member_payments_payments`),
+            (SELECT COALESCE(SUM(registration_fee), 0) FROM member_payments WHERE 1=1 ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``} ${start ? sql`AND registration_date >= ${start} AND registration_date <= ${end}` : sql``}) as reg,
+            COALESCE(SUM(CASE WHEN mpp.status = 'paid' AND ${start ? sql`mpp.payment_month >= ${start} AND mpp.payment_month <= ${end}` : sql`TRUE`} THEN mpp.amount ELSE 0 END), 0) as paid,
+            COALESCE(SUM(CASE WHEN mpp.status = 'unpaid' AND ${start ? sql`mpp.payment_month >= ${start} AND mpp.payment_month <= ${end}` : sql`TRUE`} THEN mpp.amount ELSE 0 END), 0) as due
+          FROM member_payments_payments mpp
+          INNER JOIN member_payments mp ON mp.id = mpp._parent_id
+          WHERE 1=1 ${tenantId ? sql`AND mp.tenant_id = ${tenantId}` : sql``}`),
 
             // Students Query
             req.payload.db.drizzle.execute(sql`
           SELECT 
-            (SELECT COALESCE(SUM(registration_fee), 0) FROM student_payments WHERE ${start ? sql`registration_date >= ${start} AND registration_date <= ${end}` : sql`TRUE`}) as reg,
-            COALESCE(SUM(CASE WHEN status = 'paid' AND ${start ? sql`payment_month >= ${start} AND payment_month <= ${end}` : sql`TRUE`} THEN amount ELSE 0 END), 0) as paid,
-            COALESCE(SUM(CASE WHEN status = 'unpaid' AND ${start ? sql`payment_month >= ${start} AND payment_month <= ${end}` : sql`TRUE`} THEN amount ELSE 0 END), 0) as due
-          FROM student_payments_payments`),
+            (SELECT COALESCE(SUM(registration_fee), 0) FROM student_payments WHERE 1=1 ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``} ${start ? sql`AND registration_date >= ${start} AND registration_date <= ${end}` : sql``}) as reg,
+            COALESCE(SUM(CASE WHEN spp.status = 'paid' AND ${start ? sql`spp.payment_month >= ${start} AND spp.payment_month <= ${end}` : sql`TRUE`} THEN spp.amount ELSE 0 END), 0) as paid,
+            COALESCE(SUM(CASE WHEN spp.status = 'unpaid' AND ${start ? sql`spp.payment_month >= ${start} AND spp.payment_month <= ${end}` : sql`TRUE`} THEN spp.amount ELSE 0 END), 0) as due
+          FROM student_payments_payments spp
+          INNER JOIN student_payments sp ON sp.id = spp._parent_id
+          WHERE 1=1 ${tenantId ? sql`AND sp.tenant_id = ${tenantId}` : sql``}`),
 
             // Bookings Query
             req.payload.db.drizzle.execute(sql`
@@ -149,15 +177,18 @@ export const OtherIncomes: CollectionConfig = {
             COALESCE(SUM(CASE WHEN bp.payment_status = 'unpaid' THEN bp.total_amount ELSE 0 END), 0) as due
           FROM booking_payments bp
           INNER JOIN court_bookings_bookings cbb ON cbb._parent_id = bp.booking_id
-          WHERE 1=1 ${dateFilter('cbb.booking_date')}`),
+          WHERE 1=1 ${tenantId ? sql`AND bp.tenant_id = ${tenantId}` : sql``} ${dateFilter('cbb.booking_date')}`),
 
             // Sponsors Query
             req.payload.db.drizzle.execute(sql`
-          SELECT COALESCE(SUM(amount), 0) as paid FROM sponsors_amounts WHERE 1=1 ${dateFilter('date')}`),
+          SELECT COALESCE(SUM(sa.amount), 0) as paid
+          FROM sponsors_amounts sa
+          INNER JOIN sponsors s ON s.id = sa._parent_id
+          WHERE 1=1 ${tenantId ? sql`AND s.tenant_id = ${tenantId}` : sql``} ${dateFilter('sa.date')}`),
 
             // Others Query
             req.payload.db.drizzle.execute(sql`
-          SELECT COALESCE(SUM(amount), 0) as paid FROM other_incomes WHERE 1=1 ${dateFilter('date')}`),
+          SELECT COALESCE(SUM(amount), 0) as paid FROM other_incomes WHERE 1=1 ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``} ${dateFilter('date')}`),
           ])
 
           // 2. Parse Results

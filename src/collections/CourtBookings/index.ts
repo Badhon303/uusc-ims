@@ -1,4 +1,6 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { CollectionConfig, Where } from 'payload'
+import { tenantScopedUserFilter } from '@/utils/access/tenantFilterOptions'
 
 export const CourtBookings: CollectionConfig = {
   slug: 'court-bookings',
@@ -11,7 +13,7 @@ export const CourtBookings: CollectionConfig = {
     group: '📅 Schedule',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: () => true,
     update: ({ req: { user } }) => {
       if (!user) return false
@@ -104,6 +106,7 @@ export const CourtBookings: CollectionConfig = {
       required: true,
       hasMany: false,
       defaultValue: ({ req }) => req.user?.id,
+      filterOptions: ({ req }) => tenantScopedUserFilter(req),
       access: {
         update: ({ req }) => req.user?.role === 'admin' || req.user?.role === 'manager',
         create: ({ req }) => req.user?.role === 'admin' || req.user?.role === 'manager',
@@ -245,8 +248,10 @@ export const CourtBookings: CollectionConfig = {
             ],
           },
           depth: 2,
-          limit: 0,
+          limit: 500,
           pagination: false,
+          req,
+          overrideAccess: false,
         })
 
         const docs = result.docs || []

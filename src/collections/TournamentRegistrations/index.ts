@@ -1,5 +1,8 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { sql } from 'drizzle-orm'
 import { CollectionConfig } from 'payload'
+import { resolveReportTenantScope } from '@/utils/access/tenantReport'
+import { tenantScopedUserFilter } from '@/utils/access/tenantFilterOptions'
 
 export const TournamentRegistrations: CollectionConfig = {
   slug: 'tournament-registrations',
@@ -15,7 +18,7 @@ export const TournamentRegistrations: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       if (user.role === 'admin' || user.role === 'manager' || user.role === 'coach') return true
@@ -115,6 +118,7 @@ export const TournamentRegistrations: CollectionConfig = {
           defaultValue: ({ req }) => {
             return req.user?.id
           },
+          filterOptions: ({ req }) => tenantScopedUserFilter(req),
           access: {
             create: ({ req }) => {
               return (
@@ -172,6 +176,12 @@ export const TournamentRegistrations: CollectionConfig = {
         try {
           const { tournamentId } = req.query
 
+          const { tenantId, isSuperAdmin } = resolveReportTenantScope(req)
+
+          if (!isSuperAdmin && !tenantId) {
+            return Response.json({ error: 'forbidden' }, { status: 403 })
+          }
+
           const result = await req.payload.db.drizzle.execute(sql`
           SELECT
             -- Sum of fees for 'paid' registrations
@@ -190,6 +200,7 @@ export const TournamentRegistrations: CollectionConfig = {
           FROM tournament_registrations tr
           JOIN tournaments t ON tr.tournament_id = t.id
           WHERE 1=1
+          ${tenantId ? sql` AND tr.tenant_id = ${tenantId}` : sql``}
           ${tournamentId ? sql` AND tr.tournament_id = ${tournamentId}` : sql``}
         `)
 

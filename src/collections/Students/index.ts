@@ -1,4 +1,6 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
+import { tenantScopedUserFilter } from '@/utils/access/tenantFilterOptions'
 import type { CollectionConfig } from 'payload'
 
 export const getStudentPackage = async (req: any) => {
@@ -31,7 +33,7 @@ export const Students: CollectionConfig = {
     group: '🥳 Profiles',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager'].includes(user.role)
@@ -71,13 +73,7 @@ export const Students: CollectionConfig = {
           required: true,
           unique: true,
           hasMany: false,
-          filterOptions: () => {
-            return {
-              role: {
-                equals: 'student',
-              },
-            }
-          },
+          filterOptions: ({ req }) => tenantScopedUserFilter(req, 'student'),
         },
         {
           name: 'joinDate',
@@ -190,25 +186,15 @@ export const Students: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeRead: [
-      async ({ doc, req }) => {
-        if (doc?.user) {
-          // If already populated (depth >= 1), use it directly — no extra query
-          if (typeof doc.user === 'object') {
-            doc.studentName = doc.user.name ?? null
-          } else {
-            // Fallback for depth: 0 — manually fetch
-            try {
-              const userDoc = await req.payload.findByID({
-                collection: 'users',
-                id: doc.user,
-                depth: 0,
-              })
-              doc.studentName = userDoc?.name ?? null
-            } catch {
-              doc.studentName = null
-            }
-          }
+    afterRead: [
+      ({ doc }) => {
+        // Populate the virtual `studentName` from the populated user relationship.
+        // The admin UI uses depth >= 1 for list views, so `doc.user` is normally
+        // populated. We intentionally do NOT fall back to a per-document fetch
+        // when depth is 0 — that created an N+1 in list views. Callers that use
+        // depth 0 and need the name should populate the relationship themselves.
+        if (doc?.user && typeof doc.user === 'object') {
+          doc.studentName = doc.user.name ?? null
         }
         return doc
       },
@@ -250,6 +236,8 @@ export const Students: CollectionConfig = {
             collection: 'students',
             where: { user: { equals: user.id } },
             limit: 1,
+            req,
+            overrideAccess: false,
           })
 
           if (!studentQuery.docs.length) {
@@ -277,6 +265,7 @@ export const Students: CollectionConfig = {
               name: file.name,
               size: file.size,
             },
+            req,
           })
 
           const newProfilePictureId = uploadedMedia.id
@@ -295,7 +284,8 @@ export const Students: CollectionConfig = {
             collection: 'students',
             id: studentDoc.id,
             data: { profilePicture: newProfilePictureId },
-            overrideAccess: true, // Prevents validation errors
+            overrideAccess: true, // Student is editing their own profile picture
+            req,
           })
 
           // 5. Cleanup: Delete the OLD image if it exists and is different
@@ -305,6 +295,7 @@ export const Students: CollectionConfig = {
                 collection: 'media',
                 id: oldMediaId,
                 overrideAccess: true,
+                req,
               })
               payload.logger.info(`Deleted old media: ${oldMediaId}`)
             } catch (err) {
@@ -369,6 +360,8 @@ export const Students: CollectionConfig = {
             collection: 'students',
             where: { user: { equals: user.id } },
             limit: 1,
+            req,
+            overrideAccess: false,
           })
 
           if (!studentQuery.docs.length) {
@@ -398,6 +391,7 @@ export const Students: CollectionConfig = {
               name: file.name,
               size: file.size,
             },
+            req,
           })
 
           const newPictureId = uploadedMedia.id
@@ -420,6 +414,7 @@ export const Students: CollectionConfig = {
             id: studentDoc.id,
             data: { achievements: updatedAchievements },
             overrideAccess: true,
+            req,
           })
 
           // 5. Cleanup: Delete the OLD image if it exists and is different
@@ -429,6 +424,7 @@ export const Students: CollectionConfig = {
                 collection: 'media',
                 id: oldMediaId,
                 overrideAccess: true,
+                req,
               })
               payload.logger.info(`Deleted old achievement media: ${oldMediaId}`)
             } catch (err) {

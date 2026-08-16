@@ -1,4 +1,6 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
+import { tenantScopedUserFilter } from '@/utils/access/tenantFilterOptions'
 import type { CollectionConfig } from 'payload'
 
 export const Coaches: CollectionConfig = {
@@ -12,7 +14,7 @@ export const Coaches: CollectionConfig = {
     group: '🥳 Profiles',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: isAdmin,
     update: ({ req: { user } }) => {
       if (!user) return false
@@ -46,6 +48,7 @@ export const Coaches: CollectionConfig = {
           required: true,
           unique: true,
           hasMany: false,
+          filterOptions: ({ req }) => tenantScopedUserFilter(req, 'coach'),
         },
         {
           name: 'joinDate',
@@ -152,6 +155,8 @@ export const Coaches: CollectionConfig = {
             collection: 'coaches',
             where: { user: { equals: user.id } },
             limit: 1,
+            req,
+            overrideAccess: false,
           })
 
           if (!coachQuery.docs.length) {
@@ -179,6 +184,7 @@ export const Coaches: CollectionConfig = {
               name: file.name,
               size: file.size,
             },
+            req,
           })
 
           const newProfilePictureId = uploadedMedia.id
@@ -197,7 +203,8 @@ export const Coaches: CollectionConfig = {
             collection: 'coaches',
             id: coachDoc.id,
             data: { profilePicture: newProfilePictureId },
-            overrideAccess: true, // Prevents validation errors
+            overrideAccess: true, // Coach is editing their own profile picture
+            req,
           })
 
           // 5. Cleanup: Delete the OLD image if it exists and is different
@@ -207,6 +214,7 @@ export const Coaches: CollectionConfig = {
                 collection: 'media',
                 id: oldMediaId,
                 overrideAccess: true,
+                req,
               })
               payload.logger.info(`Deleted old media: ${oldMediaId}`)
             } catch (err) {

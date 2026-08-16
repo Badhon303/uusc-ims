@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
 import { isAdmin } from '@/utils/access/isAdmin'
 import type { CollectionConfig } from 'payload'
 
@@ -12,7 +13,7 @@ export const Packages: CollectionConfig = {
     group: '⚙️ Settings',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: isAdmin,
     update: isAdmin,
     delete: isAdmin,

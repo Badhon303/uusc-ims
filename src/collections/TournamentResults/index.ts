@@ -1,4 +1,61 @@
-import { CollectionConfig } from 'payload'
+import { isAuthenticated } from '@/utils/access/isAuthenticated'
+import type { CollectionConfig } from 'payload'
+
+/**
+ * Batched player resolver shared with the tournament matches collection.
+ * Fetches all referenced user IDs in a single query and returns a map keyed
+ * by user ID, avoiding per-player `findByID` calls.
+ */
+const buildPlayerMap = async (
+  req: any,
+  tournamentTeams: any[],
+): Promise<
+  Map<number | string, { id: number | string; name: string; email?: string; role?: string }>
+> => {
+  const playerIds = new Set<number | string>()
+
+  for (const tournamentTeam of tournamentTeams) {
+    if (tournamentTeam.teams && Array.isArray(tournamentTeam.teams)) {
+      for (const team of tournamentTeam.teams) {
+        if (team.players && Array.isArray(team.players)) {
+          for (const player of team.players) {
+            if (typeof player !== 'object' && player) {
+              playerIds.add(player)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const playerMap = new Map<number | string, any>()
+
+  if (!playerIds.size) {
+    return playerMap
+  }
+
+  const ids = Array.from(playerIds)
+  const { docs: users } = await req.payload.find({
+    collection: 'users',
+    where: { id: { in: ids } },
+    limit: ids.length,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+    select: { name: true, email: true, role: true },
+  })
+
+  for (const u of users as any[]) {
+    playerMap.set(u.id, {
+      id: u.id,
+      name: u.name || u.email || `Player ${u.id}`,
+      email: u.email,
+      role: u.role,
+    })
+  }
+
+  return playerMap
+}
 
 export const TournamentResults: CollectionConfig = {
   slug: 'tournament-results',
@@ -11,7 +68,7 @@ export const TournamentResults: CollectionConfig = {
     group: '🏆 Tournament',
   },
   access: {
-    read: () => true,
+    read: isAuthenticated,
     create: ({ req: { user } }) => {
       if (!user) return false
       return ['admin', 'manager', 'coach'].includes(user.role)
@@ -88,7 +145,11 @@ export const TournamentResults: CollectionConfig = {
                 equals: tournamentId,
               },
             },
-            depth: 2,
+            depth: 1,
+            limit: 100,
+            pagination: false,
+            req,
+            overrideAccess: false,
           })
 
           // Get all team details for this tournament
@@ -99,8 +160,14 @@ export const TournamentResults: CollectionConfig = {
                 equals: tournamentId,
               },
             },
-            depth: 2,
+            depth: 1,
+            limit: 100,
+            pagination: false,
+            req,
+            overrideAccess: false,
           })
+
+          const playerMap = await buildPlayerMap(req, tournamentTeams.docs)
 
           // Create a map of team names to their details
           const teamDetailsMap = new Map()
@@ -108,27 +175,18 @@ export const TournamentResults: CollectionConfig = {
           for (const tournamentTeam of tournamentTeams.docs) {
             if (tournamentTeam.teams && Array.isArray(tournamentTeam.teams)) {
               for (const team of tournamentTeam.teams) {
-                // Get full player details
-                const playersWithDetails = []
-                if (team.players && Array.isArray(team.players)) {
-                  for (const player of team.players) {
-                    const playerData =
-                      typeof player === 'object' && player !== null
-                        ? player
-                        : await req.payload.findByID({
-                            collection: 'users',
-                            id: player,
-                            depth: 0,
-                          })
-
-                    playersWithDetails.push({
-                      id: playerData.id,
-                      name: playerData.name || playerData.email,
-                      email: playerData.email,
-                      role: playerData.role,
-                    })
+                const playersWithDetails = (team.players || []).map((player: any) => {
+                  if (typeof player === 'object' && player !== null) {
+                    return {
+                      id: player.id,
+                      name: player.name || player.email,
+                      email: player.email,
+                      role: player.role,
+                    }
                   }
-                }
+                  const resolved = playerMap.get(player)
+                  return resolved || { id: player, name: `Player ${player}` }
+                })
 
                 teamDetailsMap.set(team.teamName, {
                   id: team.id,

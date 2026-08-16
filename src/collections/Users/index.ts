@@ -1,7 +1,14 @@
 import { isAdmin } from '@/utils/access/isAdmin'
+import { isSuperAdminField } from '@/utils/access/isSuperAdmin'
+import { getTenantIdFromUser, isSuperAdminUser } from '@/utils/access/currentUser'
 import type { CollectionConfig } from 'payload'
+import { APIError } from 'payload'
 import fs from 'fs'
 import path from 'path'
+
+const adminOnly = ({ req }: any) => {
+  return req.user?.isSuperAdmin === true || req.user?.role === 'admin'
+}
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -33,19 +40,25 @@ export const Users: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    // Tenant scoping is layered on top of this by @payloadcms/plugin-multi-tenant
+    read: ({ req: { user } }) => Boolean(user),
     create: isAdmin,
     update: ({ req: { user } }) => {
+      const currentUser = user as any
+
       if (!user) return false
-      if (user.role === 'admin') return true
+      if (currentUser?.isSuperAdmin === true || currentUser?.role === 'admin') return true
       return {
         id: { equals: user.id },
       }
     },
     delete: isAdmin,
     admin: ({ req: { user } }) => {
+      const currentUser = user as any
+
       if (!user) return false
-      return ['admin', 'manager', 'coach'].includes(user.role)
+      if (currentUser?.isSuperAdmin === true) return true
+      return ['admin', 'manager', 'coach', 'staff'].includes(currentUser?.role)
     },
   },
   fields: [
@@ -83,16 +96,16 @@ export const Users: CollectionConfig = {
           name: 'role',
           type: 'select',
           access: {
-            update: ({ req }) => {
-              return req.user?.role === 'admin'
-            },
-            create: ({ req }) => {
-              return req.user?.role === 'admin'
-            },
+            update: adminOnly,
+            create: adminOnly,
           },
           required: true,
           saveToJWT: true,
           options: [
+            {
+              label: 'Super Admin',
+              value: 'super-admin',
+            },
             {
               label: 'Admin',
               value: 'admin',
@@ -104,6 +117,10 @@ export const Users: CollectionConfig = {
             {
               label: 'Coach',
               value: 'coach',
+            },
+            {
+              label: 'Staff',
+              value: 'staff',
             },
             {
               label: 'Member',
@@ -122,6 +139,34 @@ export const Users: CollectionConfig = {
       ],
     },
     {
+      name: 'isSuperAdmin',
+      type: 'checkbox',
+      defaultValue: false,
+      saveToJWT: true,
+      access: {
+        update: isSuperAdminField,
+        create: isSuperAdminField,
+      },
+      admin: {
+        condition: (_data, _siblingData, { user }) =>
+          (user as { isSuperAdmin?: boolean } | null)?.isSuperAdmin === true,
+      },
+    },
+    {
+      name: 'tenantSubscriptionStatus',
+      type: 'text',
+      saveToJWT: true,
+      // Gates the suspended-tenant mutation guard, so it must never be client-writable
+      access: {
+        update: isSuperAdminField,
+        create: isSuperAdminField,
+      },
+      admin: {
+        readOnly: true,
+        hidden: true,
+      },
+    },
+    {
       name: 'address',
       type: 'text',
       label: 'Address',
@@ -129,6 +174,73 @@ export const Users: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeChange: [
+      // Privilege escalation guard: only super admins may mint super admins or
+      // move users between tenants. Tenant admins are pinned to their own tenant.
+      ({ data, req, operation, originalDoc }) => {
+        if (isSuperAdminUser(req) || !req.user) {
+          return data
+        }
+
+        if (data.isSuperAdmin === true || data.role === 'super-admin') {
+          throw new APIError('Only a super admin can grant super admin access.', 403)
+        }
+
+        data.isSuperAdmin = originalDoc?.isSuperAdmin === true
+
+        // Tenant membership is never self-served: on create the new user inherits the
+        // actor's tenant, on update the existing assignment is left untouched.
+        if (operation === 'create') {
+          const actorTenantId = getTenantIdFromUser(req)
+
+          if (!actorTenantId) {
+            throw new APIError('You are not assigned to a tenant.', 403)
+          }
+
+          data.tenants = [{ tenant: actorTenantId }]
+        } else {
+          delete data.tenants
+        }
+
+        return data
+      },
+      async ({ data, req }) => {
+        if (data.isSuperAdmin === true) {
+          data.role = 'super-admin'
+          data.tenants = []
+          data.tenantSubscriptionStatus = 'active'
+          return data
+        }
+
+        const tenantEntries = Array.isArray(data.tenants) ? data.tenants : []
+        const tenantValue = tenantEntries[0]?.tenant
+
+        if (!tenantValue) {
+          return data
+        }
+
+        const tenantId =
+          typeof tenantValue === 'object' && tenantValue !== null ? tenantValue.id : tenantValue
+
+        if (!tenantId) {
+          return data
+        }
+
+        try {
+          const tenantDoc = (await req.payload.findByID({
+            collection: 'tenants' as never,
+            id: tenantId,
+            depth: 0,
+          })) as any
+
+          data.tenantSubscriptionStatus = tenantDoc.subscriptionStatus || 'active'
+        } catch {
+          data.tenantSubscriptionStatus = data.tenantSubscriptionStatus || 'active'
+        }
+
+        return data
+      },
+    ],
     afterRead: [
       ({ doc }) => {
         delete doc.collection
@@ -174,6 +286,7 @@ export const Users: CollectionConfig = {
             collection: 'users',
             id: user.id,
             data: { password: newPassword },
+            req,
           })
 
           return Response.json({ message: 'Password changed successfully' }, { status: 200 })
