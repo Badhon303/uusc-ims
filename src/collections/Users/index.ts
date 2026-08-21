@@ -10,6 +10,9 @@ const adminOnly = ({ req }: any) => {
   return req.user?.isSuperAdmin === true || req.user?.role === 'admin'
 }
 
+// Roles a tenant admin (non-super-admin) is allowed to assign to users within their tenant.
+const tenantAdminAssignableRoles = ['manager', 'coach', 'member', 'student']
+
 export const Users: CollectionConfig = {
   slug: 'users',
   defaultPopulate: {
@@ -186,6 +189,20 @@ export const Users: CollectionConfig = {
           throw new APIError('Only a super admin can grant super admin access.', 403)
         }
 
+        // A tenant is provisioned with exactly one admin during onboarding. Tenant
+        // admins manage the rest of their tenant's users but can never mint another
+        // admin (or promote themselves/others into one) for their tenant.
+        if (data.role === 'admin') {
+          throw new APIError('Only a super admin can assign the admin role.', 403)
+        }
+
+        if (data.role && !tenantAdminAssignableRoles.includes(data.role)) {
+          throw new APIError(
+            `Tenant admins can only assign the following roles: ${tenantAdminAssignableRoles.join(', ')}.`,
+            403,
+          )
+        }
+
         data.isSuperAdmin = originalDoc?.isSuperAdmin === true
 
         // Tenant membership is never self-served: on create the new user inherits the
@@ -200,6 +217,53 @@ export const Users: CollectionConfig = {
           data.tenants = [{ tenant: actorTenantId }]
         } else {
           delete data.tenants
+        }
+
+        return data
+      },
+      // A tenant may only ever have a single admin. This runs for every actor
+      // (including super admins) so it can't be bypassed via the Local API either.
+      async ({ data, req, operation, originalDoc }) => {
+        if (data.role !== 'admin') {
+          return data
+        }
+
+        const tenantEntries =
+          operation === 'create'
+            ? Array.isArray(data.tenants)
+              ? data.tenants
+              : []
+            : ((originalDoc as any)?.tenants ?? [])
+        const tenantValue = tenantEntries[0]?.tenant
+        const tenantId =
+          typeof tenantValue === 'object' && tenantValue !== null ? tenantValue.id : tenantValue
+
+        if (!tenantId) {
+          return data
+        }
+
+        const existingAdmins = await req.payload.find({
+          collection: 'users',
+          where: {
+            and: [
+              { role: { equals: 'admin' } },
+              { 'tenants.tenant': { equals: tenantId } },
+              ...(operation === 'update' && originalDoc?.id
+                ? [{ id: { not_equals: originalDoc.id } }]
+                : []),
+            ],
+          },
+          limit: 1,
+          depth: 0,
+          req,
+          overrideAccess: true,
+        })
+
+        if (existingAdmins.totalDocs > 0) {
+          throw new APIError(
+            'This tenant already has an admin. Only one admin is allowed per tenant.',
+            400,
+          )
         }
 
         return data

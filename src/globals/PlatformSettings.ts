@@ -26,13 +26,6 @@ export const PlatformSettings: GlobalConfig = {
       required: false,
     },
     {
-      name: 'defaultGracePeriodDays',
-      type: 'number',
-      required: true,
-      defaultValue: 3,
-      min: 0,
-    },
-    {
       name: 'readOnlyOnSuspended',
       type: 'checkbox',
       defaultValue: true,

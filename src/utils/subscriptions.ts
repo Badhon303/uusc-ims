@@ -34,32 +34,32 @@ export const requireSuperAdmin = (req: PayloadRequest) => {
   return isSuperAdminUser(req)
 }
 
-type PlatformSettingsFallback = {
+export type TenantBillingSettings = {
   trialDurationDaysDefault: number
-  defaultGracePeriodDays: number
   billingReminderDaysBefore: number
   readOnlyOnSuspended: boolean
 }
 
-export const getPlatformSettings = async (
-  req: PayloadRequest,
-): Promise<PlatformSettingsFallback> => {
-  try {
-    // System read: platform settings are super-admin only, but scheduled jobs and
-    // tenant hooks (which may run without a user) still need the configured values.
-    const result = await req.payload.findGlobal({
-      slug: 'platform-settings' as never,
-      req,
-      overrideAccess: true,
-    } as any)
-    return result as PlatformSettingsFallback
-  } catch {
-    return {
-      trialDurationDaysDefault: 14,
-      defaultGracePeriodDays: 3,
-      billingReminderDaysBefore: 3,
-      readOnlyOnSuspended: true,
-    }
+export const getTenantBillingSettings = (tenant: any): TenantBillingSettings => ({
+  trialDurationDaysDefault: Number(tenant?.settings?.trialDurationDaysDefault ?? 14),
+  billingReminderDaysBefore: Number(tenant?.settings?.billingReminderDaysBefore ?? 3),
+  readOnlyOnSuspended: tenant?.settings?.readOnlyOnSuspended !== false,
+})
+
+export const getEmbeddedSubscriptionPlan = (tenant: any): SubscriptionPlanSummary | null => {
+  const plan = tenant?.subscriptionPlan
+
+  if (!plan || typeof plan !== 'object') {
+    return null
+  }
+
+  return {
+    id: tenant.id,
+    billingType: plan.billingType,
+    currency: plan.currency,
+    monthlyPrice: plan.monthlyPrice,
+    oneTimePrice: plan.oneTimePrice,
+    setupFee: plan.setupFee,
   }
 }
 
@@ -68,26 +68,8 @@ export type SubscriptionPlanSummary = {
   billingType?: 'one-time' | 'recurring' | null
   currency?: string | null
   monthlyPrice?: number | null
-  name?: string | null
   oneTimePrice?: number | null
   setupFee?: number | null
-}
-
-export const getSubscriptionPlan = async (
-  req: PayloadRequest,
-  planId: number | string,
-): Promise<SubscriptionPlanSummary | null> => {
-  try {
-    return (await req.payload.findByID({
-      collection: 'subscription-plans' as never,
-      id: planId as never,
-      depth: 0,
-      req,
-      overrideAccess: true,
-    })) as unknown as SubscriptionPlanSummary
-  } catch {
-    return null
-  }
 }
 
 export type InvoiceLineItem = {
@@ -119,9 +101,7 @@ export const buildPlanLineItems = ({
     lineItems.push({
       amount: planAmount,
       kind: isOneTime ? 'one-time' : 'subscription',
-      label: isOneTime
-        ? `${plan.name || 'Plan'} — one-time purchase`
-        : `${plan.name || 'Plan'} — monthly subscription`,
+      label: isOneTime ? 'One-time subscription' : 'Monthly subscription',
     })
   }
 
@@ -129,7 +109,7 @@ export const buildPlanLineItems = ({
     lineItems.push({
       amount: plan.setupFee,
       kind: 'setup-fee',
-      label: `${plan.name || 'Plan'} — one-time setup fee`,
+      label: 'One-time setup fee',
     })
   }
 

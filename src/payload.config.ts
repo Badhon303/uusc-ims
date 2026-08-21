@@ -40,13 +40,11 @@ import { Expenditures } from './collections/Expenditure'
 import { withSuspensionGuard } from './utils/access/withTenantAccess'
 import { isSuperAdminField } from './utils/access/isSuperAdmin'
 import { Tenants } from './collections/Tenants'
-import { SubscriptionPlans } from './collections/SubscriptionPlans'
 import { SubscriptionInvoices } from './collections/SubscriptionInvoices'
 import { SubscriptionEvents } from './collections/SubscriptionEvents'
 import { Notifications } from './collections/Notifications'
 import { AuditLogs } from './collections/AuditLogs'
 import { Payments } from './collections/Payments'
-import { PlatformSettings } from './globals/PlatformSettings'
 import { EnforceTenantSubscriptions } from './jobs/tasks/enforceTenantSubscriptions'
 import { SendBillingReminders } from './jobs/tasks/sendBillingReminders'
 import { DispatchPendingNotifications } from './jobs/tasks/dispatchPendingNotifications'
@@ -93,7 +91,6 @@ export default buildConfig({
   },
   collections: [
     Tenants,
-    SubscriptionPlans,
     SubscriptionInvoices,
     SubscriptionEvents,
     Users,
@@ -129,7 +126,7 @@ export default buildConfig({
       AuditLogs,
     ].map(withSuspensionGuard),
   ],
-  globals: [PlatformSettings],
+  globals: [],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

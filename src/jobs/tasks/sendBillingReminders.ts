@@ -1,5 +1,5 @@
 import type { PayloadRequest, TaskConfig } from 'payload'
-import { addDays, getPlatformSettings, resolveRelationshipId } from '@/utils/subscriptions'
+import { addDays, getTenantBillingSettings, resolveRelationshipId } from '@/utils/subscriptions'
 
 /**
  * Runs daily and queues an email Notification for every tenant admin whose trial or
@@ -18,10 +18,10 @@ const sendBillingRemindersTask = {
   ],
   handler: async ({ req }: { req: PayloadRequest }) => {
     const payload = req.payload
-    const settings = await getPlatformSettings(req)
-    const reminderDays = Number(settings.billingReminderDaysBefore || 3)
     const now = new Date()
-    const windowEnd = addDays(now, reminderDays)
+    // Tenant reminder windows are configurable per tenant. Bound the scan to a
+    // year so a malformed setting cannot create an unbounded query.
+    const scanEnd = addDays(now, 365)
 
     const { docs: tenants } = await payload.find({
       collection: 'tenants' as never,
@@ -30,13 +30,13 @@ const sendBillingRemindersTask = {
           {
             trialEndsAt: {
               greater_than_equal: now.toISOString(),
-              less_than_equal: windowEnd.toISOString(),
+              less_than_equal: scanEnd.toISOString(),
             },
           },
           {
             nextBillingDate: {
               greater_than_equal: now.toISOString(),
-              less_than_equal: windowEnd.toISOString(),
+              less_than_equal: scanEnd.toISOString(),
             },
           },
         ],
@@ -54,6 +54,16 @@ const sendBillingRemindersTask = {
       const deadline = tenant.trialEndsAt || tenant.nextBillingDate
 
       if (!tenantId || !deadline) {
+        continue
+      }
+
+      const reminderDays = Math.max(
+        0,
+        Math.min(365, getTenantBillingSettings(tenant).billingReminderDaysBefore),
+      )
+      const reminderDeadline = addDays(now, reminderDays)
+
+      if (new Date(deadline) > reminderDeadline) {
         continue
       }
 

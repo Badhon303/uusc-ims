@@ -1,5 +1,5 @@
 import type { PayloadRequest, TaskConfig } from 'payload'
-import { addDays, getPlatformSettings, resolveRelationshipId } from '@/utils/subscriptions'
+import { addDays, getTenantBillingSettings, resolveRelationshipId } from '@/utils/subscriptions'
 
 /**
  * Runs on a schedule (see payload.config.ts) and transitions tenants whose trial or
@@ -22,7 +22,6 @@ const enforceTenantSubscriptionsTask = {
   ],
   handler: async ({ req }: { req: PayloadRequest }) => {
     const payload = req.payload
-    const settings = await getPlatformSettings(req)
     const now = new Date()
 
     const { docs: tenants } = await payload.find({
@@ -51,7 +50,7 @@ const enforceTenantSubscriptionsTask = {
         continue
       }
 
-      const graceDays = Number(tenant.gracePeriodDays ?? settings.defaultGracePeriodDays ?? 3)
+      const graceDays = Number(tenant.gracePeriodDays ?? 3)
       const graceDeadline = addDays(new Date(deadline), graceDays)
 
       if (now <= new Date(deadline)) {

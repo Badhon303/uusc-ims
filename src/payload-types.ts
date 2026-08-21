@@ -68,7 +68,6 @@ export interface Config {
   blocks: {};
   collections: {
     tenants: Tenant;
-    'subscription-plans': SubscriptionPlan;
     'subscription-invoices': SubscriptionInvoice;
     'subscription-events': SubscriptionEvent;
     users: User;
@@ -110,7 +109,6 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     tenants: TenantsSelect<false> | TenantsSelect<true>;
-    'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
     'subscription-invoices': SubscriptionInvoicesSelect<false> | SubscriptionInvoicesSelect<true>;
     'subscription-events': SubscriptionEventsSelect<false> | SubscriptionEventsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -154,11 +152,9 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
-    'platform-settings': PlatformSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
-    'platform-settings': PlatformSettingsSelect<false> | PlatformSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -205,20 +201,32 @@ export interface Tenant {
   id: number;
   name: string;
   slug: string;
-  logoId?: (number | null) | Media;
   contactNumber?: string | null;
   address?: string | null;
-  timezone: string;
-  currency: string;
   isActive: boolean;
-  settings?: {
-    latePaymentGraceDays?: number | null;
+  settings: {
+    trialDurationDaysDefault: number;
+    billingReminderDaysBefore: number;
+    readOnlyOnSuspended: boolean;
     cancellationPolicy?: string | null;
   };
-  subscriptionPlan?: (number | null) | SubscriptionPlan;
+  subscriptionPlan: {
+    billingType: 'recurring' | 'one-time';
+    monthlyPrice?: number | null;
+    oneTimePrice?: number | null;
+    currency: string;
+    setupFee?: number | null;
+    features?: {
+      maxCourts?: number | null;
+      maxUsers?: number | null;
+      tournamentsEnabled?: boolean | null;
+      whatsappNotificationsEnabled?: boolean | null;
+      reportsEnabled?: boolean | null;
+    };
+  };
   subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'suspended' | 'cancelled';
   /**
-   * Kept in sync with the billing type of the selected plan.
+   * Calculated automatically from the selected plan.
    */
   billingCycle: 'monthly' | 'one-time';
   trialStartedAt?: string | null;
@@ -245,78 +253,18 @@ export interface Tenant {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    thumbnail?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    card?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-plans".
- */
-export interface SubscriptionPlan {
-  id: number;
-  name: string;
-  /**
-   * Recurring plans are invoiced every billing cycle. One-time plans are paid once and never expire.
-   */
-  billingType: 'recurring' | 'one-time';
-  monthlyPrice?: number | null;
-  oneTimePrice?: number | null;
-  currency: string;
-  isActive: boolean;
-  /**
-   * Charged once, on the tenant’s first invoice. Applies to both recurring and one-time plans.
-   */
-  setupFee?: number | null;
-  features?: {
-    maxCourts?: number | null;
-    maxUsers?: number | null;
-    tournamentsEnabled?: boolean | null;
-    whatsappNotificationsEnabled?: boolean | null;
-    reportsEnabled?: boolean | null;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "subscription-invoices".
  */
 export interface SubscriptionInvoice {
   id: number;
   tenant: number | Tenant;
-  plan?: (number | null) | SubscriptionPlan;
+  planSnapshot: {
+    billingType: 'recurring' | 'one-time';
+    monthlyPrice?: number | null;
+    oneTimePrice?: number | null;
+    currency: string;
+    setupFee?: number | null;
+  };
   /**
    * One-time invoices have no billing period and activate the tenant permanently once paid.
    */
@@ -428,6 +376,43 @@ export interface SubscriptionEvent {
   note?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1245,10 +1230,6 @@ export interface PayloadLockedDocument {
         value: number | Tenant;
       } | null)
     | ({
-        relationTo: 'subscription-plans';
-        value: number | SubscriptionPlan;
-      } | null)
-    | ({
         relationTo: 'subscription-invoices';
         value: number | SubscriptionInvoice;
       } | null)
@@ -1425,19 +1406,35 @@ export interface PayloadMigration {
 export interface TenantsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
-  logoId?: T;
   contactNumber?: T;
   address?: T;
-  timezone?: T;
-  currency?: T;
   isActive?: T;
   settings?:
     | T
     | {
-        latePaymentGraceDays?: T;
+        trialDurationDaysDefault?: T;
+        billingReminderDaysBefore?: T;
+        readOnlyOnSuspended?: T;
         cancellationPolicy?: T;
       };
-  subscriptionPlan?: T;
+  subscriptionPlan?:
+    | T
+    | {
+        billingType?: T;
+        monthlyPrice?: T;
+        oneTimePrice?: T;
+        currency?: T;
+        setupFee?: T;
+        features?:
+          | T
+          | {
+              maxCourts?: T;
+              maxUsers?: T;
+              tournamentsEnabled?: T;
+              whatsappNotificationsEnabled?: T;
+              reportsEnabled?: T;
+            };
+      };
   subscriptionStatus?: T;
   billingCycle?: T;
   trialStartedAt?: T;
@@ -1458,35 +1455,19 @@ export interface TenantsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-plans_select".
- */
-export interface SubscriptionPlansSelect<T extends boolean = true> {
-  name?: T;
-  billingType?: T;
-  monthlyPrice?: T;
-  oneTimePrice?: T;
-  currency?: T;
-  isActive?: T;
-  setupFee?: T;
-  features?:
-    | T
-    | {
-        maxCourts?: T;
-        maxUsers?: T;
-        tournamentsEnabled?: T;
-        whatsappNotificationsEnabled?: T;
-        reportsEnabled?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "subscription-invoices_select".
  */
 export interface SubscriptionInvoicesSelect<T extends boolean = true> {
   tenant?: T;
-  plan?: T;
+  planSnapshot?:
+    | T
+    | {
+        billingType?: T;
+        monthlyPrice?: T;
+        oneTimePrice?: T;
+        currency?: T;
+        setupFee?: T;
+      };
   invoiceType?: T;
   lineItems?:
     | T
@@ -2258,20 +2239,6 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "platform-settings".
- */
-export interface PlatformSetting {
-  id: number;
-  trialDurationDaysDefault: number;
-  defaultPaidPlan?: (number | null) | SubscriptionPlan;
-  defaultGracePeriodDays: number;
-  readOnlyOnSuspended: boolean;
-  billingReminderDaysBefore: number;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -2287,20 +2254,6 @@ export interface PayloadJobsStat {
     | null;
   updatedAt?: string | null;
   createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "platform-settings_select".
- */
-export interface PlatformSettingsSelect<T extends boolean = true> {
-  trialDurationDaysDefault?: T;
-  defaultPaidPlan?: T;
-  defaultGracePeriodDays?: T;
-  readOnlyOnSuspended?: T;
-  billingReminderDaysBefore?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

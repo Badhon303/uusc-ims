@@ -54,10 +54,36 @@ export const SubscriptionInvoices: CollectionConfig = {
           index: true,
         },
         {
-          name: 'plan',
-          type: 'relationship',
-          relationTo: 'subscription-plans' as never,
-          required: false,
+          name: 'planSnapshot',
+          type: 'group',
+          fields: [
+            {
+              name: 'billingType',
+              type: 'select',
+              required: true,
+              options: ['recurring', 'one-time'],
+            },
+            {
+              name: 'monthlyPrice',
+              type: 'number',
+              min: 0,
+            },
+            {
+              name: 'oneTimePrice',
+              type: 'number',
+              min: 0,
+            },
+            {
+              name: 'currency',
+              type: 'text',
+              required: true,
+            },
+            {
+              name: 'setupFee',
+              type: 'number',
+              min: 0,
+            },
+          ],
         },
       ],
     },

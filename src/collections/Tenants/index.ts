@@ -3,12 +3,12 @@ import {
   addMonths,
   buildPlanLineItems,
   createSubscriptionEvent,
-  getPlatformSettings,
-  getSubscriptionPlan,
   resolveRelationshipId,
   sumLineItems,
   syncTenantUsersSubscriptionStatus,
   addDays,
+  getEmbeddedSubscriptionPlan,
+  getTenantBillingSettings,
 } from '@/utils/subscriptions'
 import { getCurrentUser, getTenantIdFromUser, isSuperAdminUser } from '@/utils/access/currentUser'
 
@@ -74,12 +74,6 @@ export const Tenants: CollectionConfig = {
       type: 'row',
       fields: [
         {
-          name: 'logoId',
-          type: 'upload',
-          relationTo: 'media',
-          required: false,
-        },
-        {
           name: 'contactNumber',
           type: 'text',
         },
@@ -90,27 +84,10 @@ export const Tenants: CollectionConfig = {
       ],
     },
     {
-      type: 'row',
-      fields: [
-        {
-          name: 'timezone',
-          type: 'text',
-          required: true,
-          defaultValue: 'Asia/Dhaka',
-        },
-        {
-          name: 'currency',
-          type: 'text',
-          required: true,
-          defaultValue: 'BDT',
-        },
-        {
-          name: 'isActive',
-          type: 'checkbox',
-          required: true,
-          defaultValue: true,
-        },
-      ],
+      name: 'isActive',
+      type: 'checkbox',
+      required: true,
+      defaultValue: true,
     },
     {
       name: 'settings',
@@ -120,10 +97,29 @@ export const Tenants: CollectionConfig = {
           type: 'row',
           fields: [
             {
-              name: 'latePaymentGraceDays',
+              name: 'trialDurationDaysDefault',
               type: 'number',
+              required: true,
+              defaultValue: 14,
+              min: 1,
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'billingReminderDaysBefore',
+              type: 'number',
+              required: true,
               defaultValue: 3,
               min: 0,
+            },
+            {
+              name: 'readOnlyOnSuspended',
+              type: 'checkbox',
+              required: true,
+              defaultValue: true,
             },
           ],
         },
@@ -134,14 +130,87 @@ export const Tenants: CollectionConfig = {
       ],
     },
     {
-      type: 'row',
+      name: 'subscriptionPlan',
+      type: 'group',
       fields: [
         {
-          name: 'subscriptionPlan',
-          type: 'relationship',
-          relationTo: 'subscription-plans' as never,
-          required: false,
+          name: 'billingType',
+          type: 'select',
+          required: true,
+          defaultValue: 'recurring',
+          options: ['recurring', 'one-time'],
         },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'monthlyPrice',
+              type: 'number',
+              min: 0,
+              admin: {
+                condition: (_data, siblingData) => siblingData?.billingType !== 'one-time',
+              },
+            },
+            {
+              name: 'oneTimePrice',
+              type: 'number',
+              min: 0,
+              admin: {
+                condition: (_data, siblingData) => siblingData?.billingType === 'one-time',
+              },
+            },
+            {
+              name: 'currency',
+              type: 'text',
+              required: true,
+              defaultValue: 'BDT',
+            },
+          ],
+        },
+        {
+          name: 'setupFee',
+          type: 'number',
+          min: 0,
+          defaultValue: 0,
+        },
+        {
+          name: 'features',
+          type: 'group',
+          fields: [
+            {
+              name: 'maxCourts',
+              type: 'number',
+              defaultValue: 2,
+              min: 0,
+            },
+            {
+              name: 'maxUsers',
+              type: 'number',
+              defaultValue: 10,
+              min: 0,
+            },
+            {
+              name: 'tournamentsEnabled',
+              type: 'checkbox',
+              defaultValue: true,
+            },
+            {
+              name: 'whatsappNotificationsEnabled',
+              type: 'checkbox',
+              defaultValue: false,
+            },
+            {
+              name: 'reportsEnabled',
+              type: 'checkbox',
+              defaultValue: true,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
         {
           name: 'subscriptionStatus',
           type: 'select',
@@ -165,7 +234,8 @@ export const Tenants: CollectionConfig = {
             },
           ],
           admin: {
-            description: 'Kept in sync with the billing type of the selected plan.',
+            readOnly: true,
+            description: 'Calculated automatically from the selected plan.',
           },
         },
       ],
@@ -176,18 +246,30 @@ export const Tenants: CollectionConfig = {
         {
           name: 'trialStartedAt',
           type: 'date',
+          admin: {
+            readOnly: true,
+          },
         },
         {
           name: 'trialEndsAt',
           type: 'date',
+          admin: {
+            readOnly: true,
+          },
         },
         {
           name: 'currentPeriodStart',
           type: 'date',
+          admin: {
+            readOnly: true,
+          },
         },
         {
           name: 'currentPeriodEnd',
           type: 'date',
+          admin: {
+            readOnly: true,
+          },
         },
       ],
     },
@@ -197,6 +279,9 @@ export const Tenants: CollectionConfig = {
         {
           name: 'nextBillingDate',
           type: 'date',
+          admin: {
+            readOnly: true,
+          },
         },
         {
           name: 'gracePeriodDays',
@@ -239,10 +324,16 @@ export const Tenants: CollectionConfig = {
         {
           name: 'suspendedAt',
           type: 'date',
+          admin: {
+            readOnly: true,
+          },
         },
         {
           name: 'suspendedReason',
           type: 'textarea',
+          admin: {
+            readOnly: true,
+          },
         },
       ],
     },
@@ -252,10 +343,16 @@ export const Tenants: CollectionConfig = {
         {
           name: 'cancelledAt',
           type: 'date',
+          admin: {
+            readOnly: true,
+          },
         },
         {
           name: 'cancelledReason',
           type: 'textarea',
+          admin: {
+            readOnly: true,
+          },
         },
       ],
     },
@@ -269,20 +366,16 @@ export const Tenants: CollectionConfig = {
           return nextData
         }
 
-        const settings = await getPlatformSettings(req)
+        const settings = getTenantBillingSettings({
+          settings: nextData.settings ?? (originalDoc as any)?.settings,
+        })
         const now = new Date()
 
-        // The billing cycle always follows the plan's billing type so the two can't drift
-        const planId = resolveRelationshipId(
-          nextData.subscriptionPlan ?? (originalDoc as any)?.subscriptionPlan,
-        )
+        // The billing cycle always follows the embedded plan's billing type so the two can't drift.
+        const plan = nextData.subscriptionPlan ?? (originalDoc as any)?.subscriptionPlan
 
-        if (planId) {
-          const plan = await getSubscriptionPlan(req, planId)
-
-          if (plan) {
-            nextData.billingCycle = plan.billingType === 'one-time' ? 'one-time' : 'monthly'
-          }
+        if (plan?.billingType) {
+          nextData.billingCycle = plan.billingType === 'one-time' ? 'one-time' : 'monthly'
         }
 
         // A paid lifetime tenant has nothing left to bill, so it must never expire
@@ -297,11 +390,16 @@ export const Tenants: CollectionConfig = {
         }
 
         if (operation === 'create') {
+          nextData.settings = {
+            trialDurationDaysDefault: 14,
+            billingReminderDaysBefore: 3,
+            readOnlyOnSuspended: true,
+            ...(nextData.settings || {}),
+          }
           nextData.trialStartedAt = nextData.trialStartedAt || now
           nextData.trialEndsAt =
             nextData.trialEndsAt || addDays(now, Number(settings.trialDurationDaysDefault || 14))
-          nextData.gracePeriodDays =
-            nextData.gracePeriodDays ?? settings.defaultGracePeriodDays ?? 3
+          nextData.gracePeriodDays = nextData.gracePeriodDays ?? 3
           nextData.subscriptionStatus = nextData.subscriptionStatus || 'trialing'
           nextData.nextBillingDate = nextData.nextBillingDate || nextData.trialEndsAt
           return normalizeLifetime(nextData)
@@ -431,19 +529,13 @@ export const Tenants: CollectionConfig = {
           overrideAccess: true,
         })) as any
 
-        const planId = resolveRelationshipId(tenant?.subscriptionPlan)
-
-        if (!planId) {
-          return Response.json(
-            { message: 'This tenant has no subscription plan assigned.' },
-            { status: 400 },
-          )
-        }
-
-        const plan = await getSubscriptionPlan(req, planId)
+        const plan = getEmbeddedSubscriptionPlan(tenant)
 
         if (!plan) {
-          return Response.json({ message: 'Subscription plan not found.' }, { status: 400 })
+          return Response.json(
+            { message: 'This tenant has no embedded subscription plan assigned.' },
+            { status: 400 },
+          )
         }
 
         const lineItems = buildPlanLineItems({
@@ -465,7 +557,13 @@ export const Tenants: CollectionConfig = {
           collection: 'subscription-invoices' as never,
           data: {
             tenant: tenantId,
-            plan: planId,
+            planSnapshot: {
+              billingType: plan.billingType,
+              monthlyPrice: plan.monthlyPrice,
+              oneTimePrice: plan.oneTimePrice,
+              currency: plan.currency,
+              setupFee: plan.setupFee,
+            },
             invoiceType: isOneTime ? 'one-time' : 'subscription',
             lineItems,
             amount: sumLineItems(lineItems),
@@ -509,9 +607,13 @@ export const Tenants: CollectionConfig = {
           return Response.json({ message: 'Missing required onboarding fields' }, { status: 400 })
         }
 
-        const settings = await getPlatformSettings(req)
+        const settings = {
+          trialDurationDaysDefault: 14,
+          billingReminderDaysBefore: 3,
+          readOnlyOnSuspended: true,
+        }
         const now = new Date()
-        const trialEndsAt = addDays(now, Number(settings.trialDurationDaysDefault || 14))
+        const trialEndsAt = addDays(now, settings.trialDurationDaysDefault)
 
         const tenant = await req.payload.create({
           collection: 'tenants' as never,
@@ -519,10 +621,11 @@ export const Tenants: CollectionConfig = {
             name,
             slug,
             contactNumber,
+            settings,
             subscriptionStatus: 'trialing',
             trialStartedAt: now,
             trialEndsAt,
-            gracePeriodDays: settings.defaultGracePeriodDays || 3,
+            gracePeriodDays: 3,
             nextBillingDate: trialEndsAt,
             autoSuspendOnExpiry: true,
           },
