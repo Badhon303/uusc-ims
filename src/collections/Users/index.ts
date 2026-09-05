@@ -3,6 +3,7 @@ import { isSuperAdminField } from '@/utils/access/isSuperAdmin'
 import { getTenantIdFromUser, isSuperAdminUser } from '@/utils/access/currentUser'
 import type { CollectionConfig } from 'payload'
 import { APIError } from 'payload'
+import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import fs from 'fs'
 import path from 'path'
 
@@ -12,6 +13,24 @@ const adminOnly = ({ req }: any) => {
 
 // Roles a tenant admin (non-super-admin) is allowed to assign to users within their tenant.
 const tenantAdminAssignableRoles = ['manager', 'coach', 'member', 'student']
+
+const tenantsField = {
+  ...tenantsArrayField({
+    arrayFieldAccess: {
+      create: isSuperAdminField,
+      update: isSuperAdminField,
+    },
+    tenantFieldAccess: {
+      create: isSuperAdminField,
+      update: isSuperAdminField,
+    },
+  }),
+  admin: {
+    components: {
+      Cell: '/components/TenantNamesCell',
+    },
+  },
+}
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -175,6 +194,7 @@ export const Users: CollectionConfig = {
       label: 'Address',
       maxLength: 999,
     },
+    tenantsField,
   ],
   hooks: {
     beforeChange: [
@@ -306,8 +326,39 @@ export const Users: CollectionConfig = {
       },
     ],
     afterRead: [
-      ({ doc }) => {
+      async ({ doc, req }) => {
         delete doc.collection
+
+        if (Array.isArray(doc.tenants)) {
+          doc.tenants = await Promise.all(
+            doc.tenants.map(async (entry: any) => {
+              const tenant = entry?.tenant
+
+              if (!tenant || typeof tenant === 'object') {
+                return entry
+              }
+
+              try {
+                const tenantDoc = await req.payload.findByID({
+                  collection: 'tenants' as never,
+                  id: tenant as never,
+                  depth: 0,
+                  req,
+                  overrideAccess: false,
+                })
+
+                return {
+                  ...entry,
+                  tenant: tenantDoc,
+                }
+              } catch {
+                // Keep the relationship ID when the current user cannot read the tenant.
+                return entry
+              }
+            }),
+          )
+        }
+
         return doc
       },
     ],

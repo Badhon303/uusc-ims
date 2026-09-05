@@ -3,30 +3,131 @@ hide circle
 skinparam linetype ortho
 skinparam componentStyle rectangle
 skinparam defaultFontSize 11
+skinparam entity {
+  BackgroundColor #F8FAFC
+  BorderColor #475569
+}
 
 ' =====================================================
-' USER & PROFILE MANAGEMENT
+' PLATFORM, TENANCY & AUTHENTICATION
 ' =====================================================
+
+entity Tenants {
+  *id: INT <<PK>>
+  --
+  *name: text
+  *slug: text <<UNIQUE>>
+  contactNumber: text
+  address: text
+  *isActive: boolean
+  --
+  settings: group[trialDurationDaysDefault, billingReminderDaysBefore, readOnlyOnSuspended, cancellationPolicy]
+  subscriptionPlan: group[billingType, monthlyPrice, oneTimePrice, currency, setupFee, features]
+  *subscriptionStatus: enum[trialing, active, past_due, suspended, cancelled]
+  *billingCycle: enum[monthly, one-time]
+  trialStartedAt: datetime
+  trialEndsAt: datetime
+  currentPeriodStart: datetime
+  currentPeriodEnd: datetime
+  nextBillingDate: datetime
+  gracePeriodDays: number
+  *autoSuspendOnExpiry: boolean
+  lifetimePurchasedAt: datetime
+  setupFeeChargedAt: datetime
+  suspendedAt: datetime
+  suspendedReason: textarea
+  cancelledAt: datetime
+  cancelledReason: textarea
+}
 
 entity Users {
   *id: INT <<PK>>
   --
-  *email: email
+  *email: email <<UNIQUE>>
   *name: text
-  *contactNumber: regex
-  *role: enum[Admin, Manager, Coach, Members, Student, Guest]
+  contactNumber: regex
+  *role: enum[super-admin, admin, manager, coach, staff, member, student, guest]
+  *isSuperAdmin: boolean
+  tenantSubscriptionStatus: text
   address: text
+  tenants: array[tenantId <<FK>>]
 }
 
 entity Media {
   *id: INT <<PK>>
   --
   alt: text
+  url: text
+  filename: text
+  mimeType: text
+  filesize: number
 }
+
+entity AuditLogs {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  userId: INT <<FK>>
+  action: text
+  collection: text
+  documentId: text
+  data: json
+}
+
+entity Notifications {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  *userId: INT <<FK>>
+  channel: enum[email, in-app, whatsapp]
+  type: text
+  status: enum[pending, sent, failed]
+  payload: json
+}
+
+' =====================================================
+' PLATFORM BILLING (Tenant pays the platform / super admin)
+' =====================================================
+
+entity SubscriptionInvoices {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  planSnapshot: group[billingType, monthlyPrice, oneTimePrice, currency, setupFee]
+  *invoiceType: enum[subscription, one-time]
+  lineItems: array[label, kind, amount]
+  billingPeriodStart: datetime
+  billingPeriodEnd: datetime
+  *dueAt: datetime
+  *amount: number
+  *currency: text
+  *status: enum[draft, pending, paid, failed, void]
+  paymentMethod: enum[bkash, nagad, sslcommerz, manual/bank-transfer]
+  gatewayTransactionId: text
+  *issuedAt: datetime
+  paidAt: datetime
+  createdBy: INT <<FK>>
+}
+
+entity SubscriptionEvents {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  *eventType: enum[trial_started, trial_extended, trial_converted, plan_changed, one_time_purchased, setup_fee_charged, invoice_generated, payment_received, payment_failed, suspended, reactivated, cancelled]
+  fromValue: json
+  toValue: json
+  triggeredBy: INT <<FK>>
+  note: textarea
+}
+
+' =====================================================
+' USER PROFILES & MEMBERSHIP
+' =====================================================
 
 entity Members {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *userId: INT <<FK>>
   profilePictureId: INT <<FK>>
   *status: enum[active, pending, inactive]
@@ -39,6 +140,7 @@ entity Members {
 entity Students {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *userId: INT <<FK>>
   profilePictureId: INT <<FK>>
   parentName: text
@@ -50,11 +152,12 @@ entity Students {
   achievements: array[photoId, description]
 }
 
-entity Manager {
+entity Managers {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *userId: INT <<FK>>
-  managerSalaryId: array[INT] <<FK>>
+  profilePictureId: INT <<FK>>
   *joinDate: date
   status: enum[active, pending, inactive]
 }
@@ -62,8 +165,8 @@ entity Manager {
 entity Staffs {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   profilePictureId: INT <<FK>>
-  staffSalaryId: array[INT] <<FK>>
   name: text
   contactNumber: regex
   address: text
@@ -74,41 +177,37 @@ entity Staffs {
 entity Coaches {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *userId: INT <<FK>>
-  coachSalaryId: array[INT] <<FK>>
+  profilePictureId: INT <<FK>>
   specialization: richText
-  certification: array[protoId, description]
-  join_date: date
+  certification: array[photoId, description]
+  joinDate: date
   status: enum[active, pending, inactive]
 }
 
 ' =====================================================
-' ATTENDANCE
-' =====================================================
-
-entity StudentAttendance {
-  *id: INT <<PK>>
-  --
-  *studentId: INT <<FK>>
-  *attendances: array[Month, Notes, AbsentDays[type, date]]
-}
-
-' =====================================================
-' PACKAGES & PAYMENTS
+' PACKAGES, MEMBERSHIP & ATTENDANCE
 ' =====================================================
 
 entity Packages {
   *id: INT <<PK>>
   --
-  *packageName: text
-  *pricePerMonth: number
+  *tenantId: INT <<FK>>
+  *title: text
+  *price: number
   *registrationFee: number
-  description: richText
+  features: array[feature]
 }
+
+' =====================================================
+' TENANT INCOME (members, students, and users pay the tenant)
+' =====================================================
 
 entity MemberPayments {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *memberId: INT <<FK>>
   *registrationFee: number
   *paymentMonth: date
@@ -121,6 +220,7 @@ entity MemberPayments {
 entity StudentPayments {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *studentId: INT <<FK>>
   *registrationFee: number
   *paymentMonth: date
@@ -130,22 +230,57 @@ entity StudentPayments {
   *status: enum[Due, Paid]
 }
 
+entity Payments {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  payer: polymorphic FK[members, students, users]
+  amount: number
+  paymentMethod: enum[cash, bkash, nagad, sslcommerz, card]
+  status: enum[pending, paid, failed, refunded, due]
+  transactionRef: text
+  invoiceNumber: text
+  context: enum[membership, registration-fee, court-booking, tournament-fee]
+  contextRefId: text
+  dueDate: date
+  paidAt: date
+}
+
 entity BookingPayments {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *bookingId: INT <<FK>>
   *totalAmount: number
   *paymentStatus: enum[Paid, Unpaid]
+}
+
+entity OtherIncomes {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  *type: enum[membership, registration, tournament, other]
+  *amount: decimal
+  incomeDate: date
+  description: textarea
+}
+
+entity StudentAttendance {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  *studentId: INT <<FK>>
+  attendances: array[month, notes, absentDays[type, date]]
 }
 
 ' =====================================================
 ' ACADEMY TRAINING
 ' =====================================================
 
-entity TrainingGroup {
+entity TrainingGroups {
   *id: INT <<PK>>
   --
-  *groupName: text
+  *tenantId: INT <<FK>>
   *studentId: INT <<FK>>
   *coachId: INT <<FK>>
   *skillLevel: enum[beginner, intermediate, pro]
@@ -154,6 +289,7 @@ entity TrainingGroup {
 entity TrainingSchedules {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *trainingGroupId: INT <<FK>>
   *coachId: INT <<FK>>
   *courtId: INT <<FK>>
@@ -162,9 +298,10 @@ entity TrainingSchedules {
   *endTime: datetime
 }
 
-entity MembersSchedules {
+entity MemberSchedules {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *courtId: INT <<FK>>
   *dayOfWeek: enum
   *startTime: datetime
@@ -174,41 +311,55 @@ entity MembersSchedules {
 entity StudentProgress {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *studentId: INT <<FK>>
   *coachId: INT <<FK>>
-  *evaluation: array[skillCategory, score, remarks]
+  evaluation: array[skillCategory, score, remarks]
 }
 
 ' =====================================================
-' COURT MANAGEMENT
+' COURTS & BOOKINGS
 ' =====================================================
 
 entity Courts {
-  *Id: INT <<PK>>
+  *id: INT <<PK>>
   --
-  *courtName: string
-  peakHorPrice: number
-  normalHorPrice: number
+  *tenantId: INT <<FK>>
+  *name: text
+  *peakHourPrice: number
+  *normalHourPrice: number
 }
 
 entity CourtBookings {
-  *Id: INT <<PK>>
+  *id: INT <<PK>>
   --
-  *courtId: INT <<FK>>
+  *tenantId: INT <<FK>>
   *userId: INT <<FK>>
+  *courtId: INT <<FK>>
   *bookingDate: date
   *startTime: datetime
   *endTime: datetime
+  status: enum
+}
+
+entity BookingPayments {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
+  *bookingId: INT <<FK>>
+  *totalAmount: number
+  *paymentStatus: enum[Paid, Unpaid]
 }
 
 ' =====================================================
-' TOURNAMENT MANAGEMENT
+' TOURNAMENTS
 ' =====================================================
 
 entity Tournaments {
   *id: INT <<PK>>
   --
-  *tournamentName: text
+  *tenantId: INT <<FK>>
+  *name: text
   *registrationFee: number
   *tournamentType: enum[Academy, Members, Academy&Members, OpenForAll]
   registrationStartDate: date
@@ -219,6 +370,7 @@ entity Tournaments {
 entity TournamentRegistrations {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *tournamentId: INT <<FK>>
   *userId: INT <<FK>>
   registrationDate: datetime
@@ -229,6 +381,7 @@ entity TournamentRegistrations {
 entity TournamentTeams {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *teamName: text
   *tournamentId: INT <<FK>>
   *playerOne: INT <<FK>>
@@ -238,83 +391,65 @@ entity TournamentTeams {
 entity TournamentMatches {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *tournamentId: INT <<FK>>
   *teamOneId: INT <<FK>>
   *teamTwoId: INT <<FK>>
-  courtId: INT <<FK>>
+  *courtId: INT <<FK>>
   winnerId: INT <<FK>>
-  scheduled_time: datetime
+  scheduledTime: datetime
   teamOneScore: number
-  scoreTwoScore: number
+  teamTwoScore: number
 }
 
 entity TournamentResults {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
   *tournamentId: INT <<FK>>
   *teamId: INT <<FK>>
   *position: number
-  prize_amount: decimal
+  prizeAmount: decimal
 }
 
 ' =====================================================
-' EXPENDITURE
+' TENANT EXPENSES & SPONSORS (tenant pays staff, vendors, etc.)
 ' =====================================================
 
-entity Expenditure {
+entity Expenditures {
   *id: INT <<PK>>
   --
-  *expenditure_type: enum[Salaries ...]
-' Maintenance, UtilityBill, EquipmentPurchase, TournamentExpenses, IndoorFacility, Miscellaneous
+  *tenantId: INT <<FK>>
+  *type: enum[salaries, maintenance, utility, equipment, tournament, facility, miscellaneous]
   *amount: decimal
   expenditureDate: date
   description: textarea
 }
 
-entity ManagerSalary {
+entity CoachSalaries {
   *id: INT <<PK>>
   --
-  *paymentMonth: date
-  *salary: number
-  bonus: number
-  *status: enum[Due, Paid]
-}
-
-entity StaffSalary {
-  *id: INT <<PK>>
-  --
-  *paymentMonth: date
-  *salary: number
-  bonus: number
-  *status: enum[Due, Paid]
-}
-
-entity CoachSalary {
-  *id: INT <<PK>>
-  --
-  *paymentMonth: date
-  *salary: number
-  bonus: number
-  *status: enum[Due, Paid]
-}
-
-' =====================================================
-' Income
-' =====================================================
-
-entity Income {
-  *id: INT <<PK>>
-  --
-  *amount: number
-  *income_type: enum[MembershipFee ...] 
-' MembershipFee, RegistrationFee, TournamentFee, Other
-  incomeDate: date
-  description: textarea
+  *tenantId: INT <<FK>>
+  *coachId: INT <<FK>>
+  totalDue: number
+  totalPaid: number
+  salaries: array[paymentMonth, salary, bonus, status]
 }
 
 entity Sponsors {
   *id: INT <<PK>>
   --
+  *tenantId: INT <<FK>>
+  *coachId: INT <<FK>>
+  totalDue: number
+  totalPaid: number
+  salaries: array[paymentMonth, salary, bonus, status]
+}
+
+entity Sponsors {
+  *id: INT <<PK>>
+  --
+  *tenantId: INT <<FK>>
   photoId: INT <<FK>>
   *sponsorName: text
   *contactNumber: regex
@@ -325,64 +460,103 @@ entity Sponsors {
 ' RELATIONSHIPS
 ' =====================================================
 
+' Tenant ownership: injected by @payloadcms/plugin-multi-tenant
+Tenants ||--o{ Users : memberships
+Tenants ||--o{ Members
+Tenants ||--o{ Students
+Tenants ||--o{ Managers
+Tenants ||--o{ Staffs
+Tenants ||--o{ Coaches
+Tenants ||--o{ Packages
+Tenants ||--o{ Payments
+Tenants ||--o{ MemberPayments
+Tenants ||--o{ StudentPayments
+Tenants ||--o{ StudentAttendance
+Tenants ||--o{ TrainingGroups
+Tenants ||--o{ TrainingSchedules
+Tenants ||--o{ MemberSchedules
+Tenants ||--o{ StudentProgress
+Tenants ||--o{ Courts
+Tenants ||--o{ CourtBookings
+Tenants ||--o{ BookingPayments
+Tenants ||--o{ Tournaments
+Tenants ||--o{ TournamentRegistrations
+Tenants ||--o{ TournamentTeams
+Tenants ||--o{ TournamentMatches
+Tenants ||--o{ TournamentResults
+Tenants ||--o{ Expenditures
+Tenants ||--o{ OtherIncomes
+Tenants ||--o{ CoachSalaries
+Tenants ||--o{ Sponsors
+Tenants ||--o{ Notifications
+Tenants ||--o{ AuditLogs
+Tenants ||--o{ SubscriptionInvoices
+Tenants ||--o{ SubscriptionEvents
+
+' User profiles
 Users ||--o| Members
 Users ||--o| Students
+Users ||--o| Managers
 Users ||--o| Coaches
-Users ||--o| Manager
+Users ||--o{ TournamentRegistrations
+Users ||--o{ TournamentTeams
+Users ||--o{ CourtBookings
+Users ||--o{ Notifications
+Users ||--o{ AuditLogs
+Users ||--o{ SubscriptionEvents : triggeredBy
 
-Packages ||--o| Members
-Packages ||--o| Students
+' Media
+Media ||--o{ Members
+Media ||--o{ Students
+Media ||--o{ Managers
+Media ||--o{ Coaches
+Media ||--o{ Staffs
+Media ||--o{ Sponsors
 
-Students ||--o| StudentAttendance
-
+' Membership, attendance, and tenant income
 Members ||--o{ MemberPayments
 Students ||--o{ StudentPayments
+Students ||--o{ StudentAttendance
 
-TrainingGroup }o--|| Students
-TrainingGroup |o--|| Coaches
+' Tenant income (members/students/users pay the tenant)
+Members ||--o{ Payments
+Students ||--o{ Payments
+Users ||--o{ Payments
+CourtBookings ||--o{ BookingPayments
+TournamentRegistrations ||--o{ Payments : tournament-fee
+Payments ||--o{ OtherIncomes : auto-created on paid
 
-TrainingSchedules |o--|| TrainingGroup
-TrainingSchedules |o--|| Coaches
-TrainingSchedules |o--|| Courts
+' Tenant expenses (tenant pays staff/vendors)
+Coaches ||--o| CoachSalaries
 
-MembersSchedules |o--|| Courts
+' Platform billing (tenant pays the platform/super admin)
+Tenants ||--o{ SubscriptionInvoices
+SubscriptionInvoices ||--o{ SubscriptionEvents : generates
 
-StudentProgress |o--|| Students 
-Coaches ||--o| StudentProgress
+' Training
+Students ||--o{ TrainingGroups
+Coaches ||--o{ TrainingGroups
+TrainingGroups ||--o{ TrainingSchedules
+Coaches ||--o{ TrainingSchedules
+Courts ||--o{ TrainingSchedules
+Courts ||--o{ MemberSchedules
+Students ||--o{ StudentProgress
+Coaches ||--o{ StudentProgress
 
-CourtBookings |o--|| Courts
-CourtBookings |o--|| Users
-BookingPayments |o--|| CourtBookings
+' Courts and bookings
+Courts ||--o{ CourtBookings
+CourtBookings ||--o{ BookingPayments
 
-TournamentRegistrations |o--|| Users
-Tournaments ||--o| TournamentRegistrations
-Tournaments ||--o| TournamentTeams
-Users ||--o{ TournamentTeams
-
-Tournaments ||--o| TournamentMatches
+' Tournaments
+Tournaments ||--o{ TournamentRegistrations
+Tournaments ||--o{ TournamentTeams
+Tournaments ||--o{ TournamentMatches
+Tournaments ||--o{ TournamentResults
 TournamentTeams ||--o{ TournamentMatches
-TournamentMatches |o--|| Courts 
+TournamentTeams ||--o{ TournamentResults
+Courts ||--o{ TournamentMatches
 
-Tournaments ||--o| TournamentResults 
-TournamentTeams ||--o| TournamentResults 
-
-Manager ||--o{ ManagerSalary 
-Staffs ||--o{ StaffSalary 
-Coaches ||--o{ CoachSalary
-
-Expenditure ||--o| ManagerSalary
-Expenditure ||--o| StaffSalary
-Expenditure ||--o| CoachSalary
-
-Income ||--o| MemberPayments
-Income ||--o| StudentPayments
-Income ||--o| TournamentRegistrations
-Income ||--o| Sponsors
-
-Media ||--o| Members
-Media ||--o| Students
-Media ||--o| Coaches
-Media ||--o| Manager
-Media ||--o| Sponsors
+' Finance
+Coaches ||--o| CoachSalaries
 
 @enduml

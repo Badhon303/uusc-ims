@@ -168,16 +168,10 @@ export default buildConfig({
       useTenantsListFilter: false,
       // Tenant membership is a platform concern: only super admins may assign it.
       // Read stays open so tenant scoping (and `saveToJWT`) keeps working.
+      // The Users collection includes a customized version of this field so its
+      // list cell can display tenant names instead of only the tenant count.
       tenantsArrayField: {
-        includeDefaultField: true,
-        arrayFieldAccess: {
-          create: isSuperAdminField,
-          update: isSuperAdminField,
-        },
-        tenantFieldAccess: {
-          create: isSuperAdminField,
-          update: isSuperAdminField,
-        },
+        includeDefaultField: false,
       },
       collections: {
         courts: {},
